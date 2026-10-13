@@ -28,17 +28,17 @@ Exécuter les migrations dans `supabase/migrations/` (ordre 001 → 004).
 
 `POST /api/webhooks/shopify` — événement `orders/create`.
 
-Webhook (utilise **ton** domaine Vercel → Settings → Domains), ex. :
+Webhook (domaine **Production** du projet Vercel → Settings → Domains), ex. :
 
-`https://drip-os-mehdi1025s-projects.vercel.app/api/webhooks/shopify`
+`https://drip-os-seven.vercel.app/api/webhooks/shopify`
 
-> ⚠️ `drip-os.vercel.app` peut pointer vers **un autre projet** Vercel. Vérifie que `/imposition` affiche le dashboard papier Drip OS.
+> ⚠️ Un autre domaine (`drip-os.vercel.app`, etc.) peut être un **autre** projet. Vérifie que `/imposition` affiche le dashboard papier Drip OS et que `/api/health/supabase` renvoie `{"ok":true}`.
 
 Configurer dans **Shopify Admin → Notifications → Webhooks** (JSON, création de commande).
 
 ## Déploiement Vercel
 
-URL team typique : `https://drip-os-mehdi1025s-projects.vercel.app`
+Production : [https://drip-os-seven.vercel.app](https://drip-os-seven.vercel.app)
 
 Variables d'environnement (Production) : voir `.env.example`.  
 Chaque `git push` sur `main` redéploie automatiquement si le repo GitHub est connecté.
