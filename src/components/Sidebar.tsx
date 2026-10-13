@@ -2,7 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutGrid, Factory, ScanLine, Package } from "lucide-react";
+import {
+  LayoutGrid,
+  Factory,
+  ScanLine,
+  Package,
+  BarChart3,
+} from "lucide-react";
 
 const navItems = [
   {
@@ -28,6 +34,12 @@ const navItems = [
     label: "Stock",
     description: "Smart Restock",
     icon: Package,
+  },
+  {
+    href: "/stats",
+    label: "Pilotage",
+    description: "Statistiques",
+    icon: BarChart3,
   },
 ] as const;
 
