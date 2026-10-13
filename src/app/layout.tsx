@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { MobileTabBar } from "@/components/MobileTabBar";
 import { Sidebar } from "@/components/Sidebar";
 import "./globals.css";
 
@@ -20,10 +21,11 @@ export default function RootLayout({
       <body className={inter.className}>
         <div className="flex min-h-screen">
           <Sidebar />
-          <main className="min-h-screen min-w-0 flex-1 overflow-auto bg-drip-paper">
+          <main className="min-h-screen min-w-0 flex-1 overflow-auto bg-drip-paper pb-16 md:pb-0">
             {children}
           </main>
         </div>
+        <MobileTabBar />
       </body>
     </html>
   );
