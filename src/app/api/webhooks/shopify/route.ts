@@ -137,6 +137,11 @@ export async function POST(request: NextRequest) {
     }
 
     if (existingSkinCount && existingSkinCount > 0) {
+      console.info("[shopify/webhook] duplicate", {
+        id_shopify: idShopify,
+        order_id: orderId,
+        skins_created: 0,
+      });
       return NextResponse.json({
         ok: true,
         duplicate: true,
@@ -171,6 +176,14 @@ export async function POST(request: NextRequest) {
     });
 
     if (skinRows.length === 0) {
+      console.info("[shopify/webhook] no skins matched", {
+        id_shopify: idShopify,
+        order_id: orderId,
+        skins_created: 0,
+        line_items: shopifyOrder.line_items.length,
+        import_all: process.env.SHOPIFY_IMPORT_ALL_LINE_ITEMS === "true",
+        titles: shopifyOrder.line_items.map((i) => i.title),
+      });
       return NextResponse.json({
         ok: true,
         order_id: orderId,
@@ -189,10 +202,16 @@ export async function POST(request: NextRequest) {
       return jsonError("Failed to insert skins", 500);
     }
 
+    const skinsCreated = insertedSkins?.length ?? skinRows.length;
+    console.info("[shopify/webhook] ok", {
+      id_shopify: idShopify,
+      order_id: orderId,
+      skins_created: skinsCreated,
+    });
     return NextResponse.json({
       ok: true,
       order_id: orderId,
-      skins_created: insertedSkins?.length ?? skinRows.length,
+      skins_created: skinsCreated,
       track_codes: insertedSkins?.map((s) => s.track_code) ?? [],
     });
   } catch (error) {
