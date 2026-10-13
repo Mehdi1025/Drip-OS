@@ -103,7 +103,7 @@ export function ScannerView() {
 
   return (
     <div
-      className="relative mx-auto flex min-h-[100dvh] max-w-lg flex-col bg-drip-paper text-drip-ink"
+      className="relative flex min-h-[100dvh] w-full max-w-none flex-col bg-drip-paper text-drip-ink md:mx-auto md:max-w-lg"
       data-testid="scanner-view"
     >
       {flash && (
@@ -119,7 +119,7 @@ export function ScannerView() {
         <h1 className="text-2xl font-black uppercase">Scanner</h1>
       </header>
 
-      <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 pb-36">
+      <div className="flex-1 space-y-4 overflow-y-auto overscroll-y-contain px-4 py-4 pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))]">
         <BarcodeScanner
           paused={cameraPaused || isFetching}
           onScan={resolveCode}
@@ -179,7 +179,7 @@ export function ScannerView() {
               Colis identifié
             </p>
             <p
-              className="mt-3 text-3xl font-black leading-tight text-[#dcfce7] sm:text-4xl"
+              className="mt-3 break-words text-2xl font-black leading-tight text-[#dcfce7] sm:text-3xl md:text-4xl"
               data-testid="scan-display-label"
             >
               {displayLabel}

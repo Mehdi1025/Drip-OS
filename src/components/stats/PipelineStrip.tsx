@@ -38,7 +38,7 @@ export function PipelineStrip({ steps }: Props) {
           );
         })}
       </div>
-      <ul className="grid gap-3 p-5 sm:grid-cols-2 lg:grid-cols-5">
+      <ul className="grid grid-cols-2 gap-3 p-4 sm:p-5 lg:grid-cols-5">
         {steps.map((step) => (
           <li key={step.label}>
             <p className="text-[10px] font-black uppercase tracking-widest text-drip-ink/50">

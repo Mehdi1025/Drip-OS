@@ -20,16 +20,17 @@ const tabs = [
 
 export function MobileTabBar() {
   const pathname = usePathname();
-  if (pathname.startsWith("/scanner")) {
-    return null;
-  }
+  const onScanner = pathname.startsWith("/scanner");
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 border-t-4 border-drip-ink bg-drip-paper pb-[env(safe-area-inset-bottom)] md:hidden"
+      className={`fixed bottom-0 left-0 right-0 z-50 border-t-4 border-drip-ink bg-drip-paper md:hidden ${
+        onScanner ? "pointer-events-none opacity-0" : ""
+      }`}
       aria-label="Navigation mobile"
+      aria-hidden={onScanner}
     >
-      <ul className="flex">
+      <ul className="flex pb-[env(safe-area-inset-bottom,0px)]">
         {tabs.map(({ href, icon: Icon, label }) => {
           const active =
             pathname === href ||
@@ -41,11 +42,11 @@ export function MobileTabBar() {
             <li key={href} className="flex-1">
               <Link
                 href={href}
-                className={`flex flex-col items-center gap-0.5 py-2 text-[9px] font-black uppercase ${
+                className={`drip-touch flex flex-col items-center justify-center gap-0.5 py-2.5 text-[9px] font-black uppercase leading-none ${
                   active ? "bg-drip-volt text-drip-ink" : "text-drip-ink/55"
                 }`}
               >
-                <Icon className="h-5 w-5" strokeWidth={2.5} />
+                <Icon className="h-6 w-6" strokeWidth={2.5} />
                 {label}
               </Link>
             </li>

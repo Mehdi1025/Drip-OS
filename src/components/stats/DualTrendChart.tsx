@@ -34,7 +34,7 @@ export function DualTrendChart({ title, data }: Props) {
             key={day.date}
             className="flex min-w-0 flex-1 flex-col items-center gap-1"
           >
-            <div className="flex h-32 w-full items-end justify-center gap-0.5 sm:gap-1">
+            <div className="flex h-24 w-full items-end justify-center gap-0.5 sm:h-32 sm:gap-1">
               <div
                 className="w-[42%] border-2 border-drip-ink bg-drip-volt"
                 style={{

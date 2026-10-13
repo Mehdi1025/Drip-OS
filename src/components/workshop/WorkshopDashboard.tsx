@@ -128,13 +128,13 @@ export function WorkshopDashboard({ initialRecentLots = [] }: Props) {
               inputMode="text"
               autoCapitalize="characters"
               autoComplete="off"
-              placeholder="Scanner / saisir le lot — L-261013-01"
+              placeholder="L-261013-01"
               value={lotInput}
               onChange={(e) => setLotInput(e.target.value.toUpperCase())}
               onBlur={() => {
                 if (lotInput.trim()) loadLot(lotInput);
               }}
-              className="min-h-[56px] w-full bg-transparent text-lg font-bold uppercase outline-none placeholder:font-medium placeholder:normal-case placeholder:text-drip-ink/40"
+              className="min-h-[56px] w-full min-w-0 bg-transparent text-base font-bold uppercase outline-none placeholder:font-medium placeholder:normal-case placeholder:text-drip-ink/40 sm:text-lg"
             />
           </label>
           <button
@@ -158,7 +158,7 @@ export function WorkshopDashboard({ initialRecentLots = [] }: Props) {
             <p className="text-xs font-black uppercase tracking-widest text-drip-ink/50">
               Derniers lots
             </p>
-            <ul className="mt-2 flex flex-wrap gap-2">
+            <ul className="drip-scroll-x mt-2 sm:flex-wrap">
               {initialRecentLots.map((lot) => {
                 const active = lotData?.lotId === lot.lotId;
                 const label =
@@ -171,7 +171,7 @@ export function WorkshopDashboard({ initialRecentLots = [] }: Props) {
                       type="button"
                       disabled={isFetching}
                       onClick={() => loadLot(lot.lotId)}
-                      className={`border-4 px-3 py-2 font-mono text-sm font-bold transition-transform active:translate-x-0.5 active:translate-y-0.5 ${
+                      className={`drip-touch border-4 px-3 py-2 font-mono text-xs font-bold transition-transform active:translate-x-0.5 active:translate-y-0.5 sm:text-sm ${
                         active
                           ? "border-drip-ink bg-drip-volt shadow-brutal-sm"
                           : "border-drip-ink bg-drip-surface hover:bg-drip-volt/40"
@@ -194,7 +194,7 @@ export function WorkshopDashboard({ initialRecentLots = [] }: Props) {
         )}
       </header>
 
-      <main className="space-y-10 px-4 py-8 sm:px-8">
+      <main className="space-y-8 px-4 py-6 sm:space-y-10 sm:px-8 sm:py-8">
         {!lotData && !error && (
           <div className="drip-empty">
             <p className="text-lg font-black uppercase">

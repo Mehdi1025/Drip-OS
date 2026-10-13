@@ -22,7 +22,7 @@ export function WorkshopSheetSection({ sheet, busySkinId, onOk, onScrap }: Props
         </span>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 min-[520px]:grid-cols-2 xl:grid-cols-4">
         {sheet.slots.map((skin, index) => {
           const slotLabel = `S${index + 1}`;
 

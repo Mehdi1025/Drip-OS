@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { StatRow } from "@/components/layout/StatRow";
 
 type Props = {
   kicker: string;
@@ -9,17 +10,17 @@ type Props = {
 
 export function DashboardShell({ kicker, title, stats, children }: Props) {
   return (
-    <div className="drip-page">
+    <div className="drip-page min-h-full">
       <header className="drip-header">
-        <div className="flex flex-wrap items-end justify-between gap-6">
-          <div>
+        <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-6">
+          <div className="min-w-0">
             <p className="drip-kicker">{kicker}</p>
-            <h1 className="drip-title">{title}</h1>
+            <h1 className="drip-title break-words">{title}</h1>
           </div>
-          {stats ? <div className="flex flex-wrap gap-3">{stats}</div> : null}
+          {stats ? <StatRow>{stats}</StatRow> : null}
         </div>
       </header>
-      <div className="px-4 py-8 sm:px-8">{children}</div>
+      <div className="px-4 py-6 sm:px-8 sm:py-8">{children}</div>
     </div>
   );
 }

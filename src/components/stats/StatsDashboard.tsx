@@ -77,11 +77,11 @@ export function StatsDashboard({ stats }: Props) {
           <StatBadge label="Commandes" value={stats.totals.orders} variant="volt" />
           <StatBadge label="Skins total" value={stats.totals.skins} />
           <StatBadge label="Lots" value={stats.totals.lots} />
-          <div className="drip-stat min-w-[120px] bg-drip-surface">
-            <p className="text-[10px] font-black uppercase tracking-widest text-drip-ink/55">
+          <div className="drip-stat min-w-[108px] bg-drip-surface sm:min-w-[120px]">
+            <p className="truncate text-[9px] font-black uppercase tracking-widest text-drip-ink/55 sm:text-[10px]">
               Taux expédition
             </p>
-            <p className="font-mono text-3xl font-black leading-none">
+            <p className="font-mono text-2xl font-black leading-none sm:text-3xl">
               {stats.kpis.shippedRatePct}%
             </p>
           </div>
@@ -222,7 +222,7 @@ export function StatsDashboard({ stats }: Props) {
         </article>
       </div>
 
-      <div className="mt-8 flex flex-wrap gap-3 border-4 border-dashed border-drip-ink/30 bg-drip-volt/20 p-4">
+      <div className="mt-8 flex flex-wrap gap-2 border-4 border-dashed border-drip-ink/30 bg-drip-volt/20 p-4 sm:gap-3">
         <QuickLink href="/imposition" label="Imposition" />
         <QuickLink href="/workshop" label="Atelier" />
         <QuickLink href="/scanner" label="Scanner" />
@@ -236,7 +236,7 @@ function QuickLink({ href, label }: { href: string; label: string }) {
   return (
     <Link
       href={href}
-      className="border-4 border-drip-ink bg-drip-surface px-4 py-2 text-xs font-black uppercase shadow-brutal-sm hover:bg-drip-volt"
+      className="drip-touch border-4 border-drip-ink bg-drip-surface px-3 py-2.5 text-[10px] font-black uppercase shadow-brutal-sm hover:bg-drip-volt sm:px-4 sm:text-xs"
     >
       {label}
     </Link>

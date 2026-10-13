@@ -36,13 +36,13 @@ export function ImpositionDashboard({ initialSkins }: Props) {
         </>
       }
     >
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <section>
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-sm font-black uppercase tracking-widest">
+      <div className="flex flex-col-reverse gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-8">
+        <section className="min-w-0">
+          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <h2 className="text-xs font-black uppercase tracking-widest sm:text-sm">
               Aperçu par paquets de 4
             </h2>
-            <span className="border-2 border-drip-ink bg-drip-volt px-2 py-0.5 font-mono text-xs font-bold">
+            <span className="w-fit border-2 border-drip-ink bg-drip-volt px-2 py-0.5 font-mono text-xs font-bold">
               4 slots / feuille
             </span>
           </div>
@@ -55,7 +55,7 @@ export function ImpositionDashboard({ initialSkins }: Props) {
               </p>
             </div>
           ) : (
-            <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 min-[480px]:grid-cols-2 xl:grid-cols-3 xl:gap-6">
               {packs.map((pack, index) => (
                 <SheetPackCard
                   key={`pack-${index + 1}`}
@@ -67,7 +67,7 @@ export function ImpositionDashboard({ initialSkins }: Props) {
           )}
         </section>
 
-        <aside className="space-y-4 lg:sticky lg:top-8 lg:self-start">
+        <aside className="space-y-4 lg:sticky lg:top-8 lg:self-start lg:order-none">
           {flash && (
             <div
               className={`border-4 border-drip-ink px-4 py-3 text-sm font-bold shadow-brutal-sm ${

@@ -13,11 +13,13 @@ export function StatBadge({ label, value, variant = "default" }: Props) {
         : "bg-drip-surface";
 
   return (
-    <div className={`drip-stat min-w-[120px] ${bg}`}>
-      <p className="text-[10px] font-black uppercase tracking-widest text-drip-ink/55">
+    <div className={`drip-stat min-w-[108px] max-w-[140px] sm:min-w-[120px] sm:max-w-none ${bg}`}>
+      <p className="truncate text-[9px] font-black uppercase tracking-widest text-drip-ink/55 sm:text-[10px]">
         {label}
       </p>
-      <p className="font-mono text-3xl font-black leading-none">{value}</p>
+      <p className="font-mono text-2xl font-black leading-none sm:text-3xl">
+        {value}
+      </p>
     </div>
   );
 }

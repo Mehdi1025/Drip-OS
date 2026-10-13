@@ -40,7 +40,7 @@ export function GenerateLotButton({
       type="button"
       onClick={handleClick}
       disabled={isDisabled}
-      className="drip-btn-volt group flex w-full max-w-xl items-center justify-center gap-3 px-8 py-5 text-lg tracking-wide shadow-brutal-lg hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-brutal active:translate-x-1 active:translate-y-1 active:shadow-brutal-sm"
+      className="drip-btn-volt drip-touch group flex w-full max-w-xl items-center justify-center gap-3 px-6 py-4 text-base tracking-wide shadow-brutal-lg hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-brutal active:translate-x-1 active:translate-y-1 active:shadow-brutal-sm sm:px-8 sm:py-5 sm:text-lg"
     >
       {isPending ? (
         <Loader2 className="h-6 w-6 animate-spin" strokeWidth={3} />

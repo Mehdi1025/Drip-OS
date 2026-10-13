@@ -11,15 +11,26 @@
 
 body {
   @apply bg-drip-paper text-drip-ink antialiased;
+  -webkit-tap-highlight-color: transparent;
 }
 
 @layer components {
+  .drip-main-scroll {
+    padding-bottom: calc(4.25rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  @media (min-width: 768px) {
+    .drip-main-scroll {
+      padding-bottom: 0;
+    }
+  }
+
   .drip-page {
     @apply min-h-full bg-drip-paper text-drip-ink;
   }
 
   .drip-header {
-    @apply border-b-4 border-drip-ink bg-drip-surface px-4 py-5 sm:px-8 sm:py-6;
+    @apply border-b-4 border-drip-ink bg-drip-surface px-4 py-4 sm:px-8 sm:py-6;
   }
 
   .drip-kicker {
@@ -27,7 +38,7 @@ body {
   }
 
   .drip-title {
-    @apply mt-1 text-3xl font-black uppercase leading-none tracking-tight sm:text-4xl;
+    @apply mt-1 text-2xl font-black uppercase leading-none tracking-tight sm:text-3xl md:text-4xl;
   }
 
   .drip-card {
@@ -35,7 +46,15 @@ body {
   }
 
   .drip-stat {
-    @apply border-4 border-drip-ink px-4 py-3 shadow-brutal-sm;
+    @apply shrink-0 border-4 border-drip-ink px-3 py-2.5 shadow-brutal-sm sm:px-4 sm:py-3;
+  }
+
+  .drip-stat-row {
+    @apply flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0;
+  }
+
+  .drip-stat-row > * {
+    @apply snap-start;
   }
 
   .drip-stat-volt {
@@ -47,6 +66,18 @@ body {
   }
 
   .drip-empty {
-    @apply border-4 border-dashed border-drip-ink/35 bg-drip-surface/60 p-12 text-center;
+    @apply border-4 border-dashed border-drip-ink/35 bg-drip-surface/60 p-8 text-center sm:p-12;
+  }
+
+  .drip-touch {
+    @apply min-h-[48px] touch-manipulation;
+  }
+
+  .drip-scroll-x {
+    @apply -mx-4 flex snap-x snap-mandatory gap-2 overflow-x-auto px-4 pb-2 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0;
+  }
+
+  .drip-scroll-x > * {
+    @apply shrink-0 snap-start;
   }
 }
