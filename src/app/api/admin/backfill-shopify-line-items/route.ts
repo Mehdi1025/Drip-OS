@@ -11,7 +11,48 @@ function unauthorized() {
   return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
 }
 
-export async function POST(request: NextRequest) {
+function isTruthyAll(value: unknown): boolean {
+  return value === true || value === "true" || value === 1 || value === "1";
+}
+
+async function parseBackfillRequest(request: NextRequest): Promise<{
+  orderShopifyId?: string;
+  all?: boolean;
+}> {
+  const url = new URL(request.url);
+  if (isTruthyAll(url.searchParams.get("all"))) {
+    return { all: true };
+  }
+
+  const orderFromQuery = url.searchParams.get("orderShopifyId")?.trim();
+  if (orderFromQuery) {
+    return { orderShopifyId: orderFromQuery };
+  }
+
+  const raw = await request.text();
+  if (!raw.trim()) {
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as {
+      orderShopifyId?: string;
+      all?: boolean | string | number;
+    };
+    return {
+      orderShopifyId: parsed.orderShopifyId?.trim(),
+      all: isTruthyAll(parsed.all),
+    };
+  } catch {
+    const normalized = raw.replace(/\s/g, "").toLowerCase();
+    if (normalized.includes('"all":true') || normalized === "{all:true}") {
+      return { all: true };
+    }
+    return {};
+  }
+}
+
+async function handleBackfill(request: NextRequest) {
   const secret = process.env.DRIP_ADMIN_SECRET?.trim();
   if (!secret) {
     return NextResponse.json(
@@ -28,17 +69,10 @@ export async function POST(request: NextRequest) {
     return unauthorized();
   }
 
-  let body: { orderShopifyId?: string; all?: boolean } = {};
-  try {
-    body = (await request.json()) as typeof body;
-  } catch {
-    body = {};
-  }
+  const body = await parseBackfillRequest(request);
 
-  if (body.orderShopifyId?.trim()) {
-    const result = await backfillFromShopifyAdminForOrder(
-      body.orderShopifyId.trim()
-    );
+  if (body.orderShopifyId) {
+    const result = await backfillFromShopifyAdminForOrder(body.orderShopifyId);
     return NextResponse.json({ ok: !result.error, ...result });
   }
 
@@ -50,8 +84,18 @@ export async function POST(request: NextRequest) {
   return NextResponse.json(
     {
       ok: false,
-      error: 'Body: { "orderShopifyId": "..." } ou { "all": true }',
+      error:
+        'Utilise ?all=true, ou body JSON {"all":true}, ou {"orderShopifyId":"..."}',
     },
     { status: 400 }
   );
+}
+
+export async function POST(request: NextRequest) {
+  return handleBackfill(request);
+}
+
+/** Pratique sous PowerShell : POST sans body JSON. */
+export async function GET(request: NextRequest) {
+  return handleBackfill(request);
 }

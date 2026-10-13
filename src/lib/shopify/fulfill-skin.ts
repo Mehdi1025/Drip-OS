@@ -18,6 +18,10 @@ type FulfillmentOrdersResponse = {
   fulfillment_orders: FulfillmentOrder[];
 };
 
+type CreateFulfillmentResponse = {
+  fulfillment?: { id: number; status?: string };
+};
+
 export type FulfillSkinOnShopifyResult =
   | { ok: true; alreadyFulfilled?: boolean }
   | { ok: false; error: string };
@@ -28,6 +32,10 @@ const OPEN_FO_STATUSES = new Set([
   "scheduled",
   "on_hold",
 ]);
+
+function shouldSendTrackCodeAsShopifyTracking(): boolean {
+  return process.env.SHOPIFY_FULFILLMENT_USE_TRACK_CODE === "true";
+}
 
 /**
  * Crée un fulfillment Shopify pour 1 unité du line_item (expédition partielle).
@@ -98,26 +106,48 @@ export async function fulfillSkinUnitOnShopify(params: {
   const quantity = Math.min(1, targetLine.fulfillable_quantity);
 
   try {
-    await shopifyAdminJson("/fulfillments.json", {
-      method: "POST",
-      body: JSON.stringify({
-        fulfillment: {
-          notify_customer: true,
-          tracking_info: {
-            number: trackingNumber.slice(0, 255),
-            company: trackingCompany,
+    const created = await shopifyAdminJson<CreateFulfillmentResponse>(
+      "/fulfillments.json",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          fulfillment: {
+            notify_customer: true,
+            message: "Expédié depuis Drip OS",
+            line_items_by_fulfillment_order: [
+              {
+                fulfillment_order_id: targetFo.id,
+                fulfillment_order_line_items: [
+                  { id: targetLine.id, quantity },
+                ],
+              },
+            ],
           },
-          line_items_by_fulfillment_order: [
-            {
-              fulfillment_order_id: targetFo.id,
-              fulfillment_order_line_items: [
-                { id: targetLine.id, quantity },
-              ],
+        }),
+      }
+    );
+
+    const fulfillmentId = created.fulfillment?.id;
+    const sendTracking = shouldSendTrackCodeAsShopifyTracking();
+
+    if (sendTracking && fulfillmentId) {
+      await shopifyAdminJson(
+        `/fulfillments/${fulfillmentId}/update_tracking.json`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            fulfillment: {
+              notify_customer: false,
+              tracking_info: {
+                number: trackingNumber.slice(0, 255),
+                company: trackingCompany,
+              },
             },
-          ],
-        },
-      }),
-    });
+          }),
+        }
+      );
+    }
+
     return { ok: true };
   } catch (e) {
     console.error("[shopify/fulfill] create fulfillment", e);
