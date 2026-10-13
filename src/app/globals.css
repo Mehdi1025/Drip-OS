@@ -8,6 +8,7 @@
   --drip-ink: #0a0a0a;
   --drip-volt: #ccff00;
   --drip-tab-bar-h: 3.75rem;
+  --drip-scanner-dock-h: 5.25rem;
   --drip-mobile-top-h: 3.25rem;
   --drip-safe-top: env(safe-area-inset-top, 0px);
   --drip-safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -30,14 +31,20 @@ body {
   }
 
   .drip-main-scroll--scanner {
-    padding-bottom: 0;
+    padding-bottom: calc(
+      var(--drip-tab-bar-h) + var(--drip-scanner-dock-h) + var(--drip-safe-bottom)
+    );
   }
 
-  @media (min-width: 1024px) {
+  @media (min-width: 768px) {
     .drip-main-scroll {
       padding-bottom: 0;
       padding-left: 0;
       padding-right: 0;
+    }
+
+    .drip-main-scroll--scanner {
+      padding-bottom: calc(var(--drip-scanner-dock-h) + var(--drip-safe-bottom));
     }
   }
 

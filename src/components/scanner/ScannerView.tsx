@@ -2,7 +2,8 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import { Keyboard, PackageCheck } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, Keyboard, PackageCheck } from "lucide-react";
 import {
   fetchSkinByTrackCode,
   markSkinShipped,
@@ -134,12 +135,23 @@ export function ScannerView() {
         />
       )}
 
-      <header className="border-b-4 border-drip-ink bg-drip-surface px-4 py-4 shadow-brutal-volt">
-        <p className="drip-kicker text-drip-ink/70">Emballage</p>
-        <h1 className="text-2xl font-black uppercase">Scanner</h1>
+      <header className="hidden border-b-4 border-drip-ink bg-drip-surface px-4 py-4 shadow-brutal-volt md:block">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="drip-kicker text-drip-ink/70">Emballage</p>
+            <h1 className="text-2xl font-black uppercase">Scanner</h1>
+          </div>
+          <Link
+            href="/imposition"
+            className="drip-touch inline-flex items-center gap-2 border-4 border-drip-ink bg-drip-volt px-4 py-2 text-xs font-black uppercase shadow-brutal-sm"
+          >
+            <ArrowLeft className="h-4 w-4" strokeWidth={3} />
+            Bureau
+          </Link>
+        </div>
       </header>
 
-      <div className="flex-1 space-y-4 overflow-y-auto overscroll-y-contain px-[calc(1rem+var(--drip-safe-left))] py-4 pr-[calc(1rem+var(--drip-safe-right))] pb-[calc(5.5rem+var(--drip-safe-bottom))]">
+      <div className="flex-1 space-y-4 overflow-y-auto overscroll-y-contain px-[calc(1rem+var(--drip-safe-left))] py-4 pr-[calc(1rem+var(--drip-safe-right))] pb-[calc(var(--drip-tab-bar-h)+var(--drip-scanner-dock-h)+var(--drip-safe-bottom)+0.5rem)] md:pb-[calc(var(--drip-scanner-dock-h)+var(--drip-safe-bottom)+0.5rem)]">
         <BarcodeScanner
           paused={cameraPaused || isFetching}
           onScan={resolveCode}
@@ -233,13 +245,13 @@ export function ScannerView() {
         )}
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t-4 border-drip-ink bg-drip-paper pb-[calc(1rem+var(--drip-safe-bottom))] pl-[var(--drip-safe-left)] pr-[var(--drip-safe-right)]">
-        <div className="mx-auto max-w-lg px-4 pt-4">
+      <div className="fixed bottom-[calc(var(--drip-tab-bar-h)+var(--drip-safe-bottom))] left-0 right-0 z-40 border-t-4 border-drip-ink bg-drip-paper pl-[var(--drip-safe-left)] pr-[var(--drip-safe-right)] md:bottom-[var(--drip-safe-bottom)]">
+        <div className="mx-auto max-w-lg px-4 py-3">
           <button
             type="button"
             disabled={!canShip}
             onClick={handleShipped}
-            className="drip-btn-volt drip-touch flex w-full min-h-[64px] items-center justify-center gap-3 text-lg shadow-brutal disabled:opacity-40"
+            className="drip-btn-volt drip-touch flex w-full min-h-[56px] items-center justify-center gap-3 text-base shadow-brutal disabled:opacity-40 sm:min-h-[64px] sm:text-lg"
             data-testid="mark-shipped-cta"
           >
             <PackageCheck className="h-8 w-8" strokeWidth={3} />

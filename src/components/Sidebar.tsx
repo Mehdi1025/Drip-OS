@@ -59,7 +59,7 @@ export function Sidebar() {
 
   return (
     <aside
-      className="sticky top-0 z-30 hidden h-[100dvh] w-64 shrink-0 flex-col border-r-4 border-drip-ink bg-drip-paper text-drip-ink shadow-[4px_0_0_0_var(--drip-volt)] lg:flex"
+      className="sticky top-0 z-30 hidden h-[100dvh] w-64 shrink-0 flex-col border-r-4 border-drip-ink bg-drip-paper text-drip-ink shadow-[4px_0_0_0_var(--drip-volt)] md:flex"
     >
       <div className="shrink-0 border-b-4 border-drip-ink bg-drip-surface px-5 py-5">
         <div className="inline-block border-4 border-drip-ink bg-drip-volt px-2 py-0.5">
