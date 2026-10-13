@@ -88,7 +88,13 @@ export function ScannerView() {
     });
   }
 
-  const canShip = skin?.status === "cut" && !isShipping;
+  const shippableStatuses = ["imposed", "printed", "cut"] as const;
+  const canShip =
+    skin != null &&
+    shippableStatuses.includes(
+      skin.status as (typeof shippableStatuses)[number]
+    ) &&
+    !isShipping;
 
   return (
     <div
@@ -177,10 +183,12 @@ export function ScannerView() {
             <p className="mt-1 text-sm font-bold uppercase text-[#bbf7d0]/80">
               {skin.customerName} · {skin.shippingMethod}
             </p>
-            {skin.status !== "cut" && (
+            {!shippableStatuses.includes(
+              skin.status as (typeof shippableStatuses)[number]
+            ) && (
               <p className="mt-3 text-sm font-bold text-amber-300">
-                Statut actuel : {skin.status} — expédition bloquée tant que le
-                contrôle atelier n&apos;est pas OK.
+                Statut actuel : {skin.status} — génère un lot (Imposition) ou
+                valide l&apos;atelier avant expédition.
               </p>
             )}
           </section>

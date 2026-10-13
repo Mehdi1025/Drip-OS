@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState, useTransition } from "react";
 import { ScanLine, Search } from "lucide-react";
 import {
@@ -11,9 +12,14 @@ import { ScrapModal } from "@/components/workshop/ScrapModal";
 import { WorkshopSheetSection } from "@/components/workshop/WorkshopSheetSection";
 import { isValidLotId, normalizeLotId } from "@/lib/workshop/lot-pattern";
 import type { ScrapReasonValue } from "@/lib/workshop/scrap-reasons";
-import type { WorkshopLotData } from "@/lib/workshop/types";
+import type { RecentWorkshopLot, WorkshopLotData } from "@/lib/workshop/types";
 
-export function WorkshopDashboard() {
+type Props = {
+  initialRecentLots?: RecentWorkshopLot[];
+};
+
+export function WorkshopDashboard({ initialRecentLots = [] }: Props) {
+  const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [lotInput, setLotInput] = useState("");
   const [lotData, setLotData] = useState<WorkshopLotData | null>(null);
@@ -77,6 +83,7 @@ export function WorkshopDashboard() {
         return;
       }
       removeSkinFromView(skinId);
+      router.refresh();
     });
   }
 
@@ -93,6 +100,7 @@ export function WorkshopDashboard() {
       }
       setScrapTarget(null);
       removeSkinFromView(targetId);
+      router.refresh();
     });
   }
 
@@ -143,6 +151,39 @@ export function WorkshopDashboard() {
           <p className="mt-4 border-4 border-drip-ink bg-red-100 px-4 py-3 text-sm font-bold">
             {error}
           </p>
+        )}
+
+        {initialRecentLots.length > 0 && (
+          <div className="mt-6">
+            <p className="text-xs font-black uppercase tracking-widest text-drip-ink/50">
+              Derniers lots
+            </p>
+            <ul className="mt-2 flex flex-wrap gap-2">
+              {initialRecentLots.map((lot) => {
+                const active = lotData?.lotId === lot.lotId;
+                const label =
+                  lot.pendingControl > 0
+                    ? `${lot.lotId} · ${lot.pendingControl} à contrôler`
+                    : `${lot.lotId} · terminé`;
+                return (
+                  <li key={lot.lotId}>
+                    <button
+                      type="button"
+                      disabled={isFetching}
+                      onClick={() => loadLot(lot.lotId)}
+                      className={`border-4 px-3 py-2 font-mono text-sm font-bold transition-transform active:translate-x-0.5 active:translate-y-0.5 ${
+                        active
+                          ? "border-drip-ink bg-drip-volt shadow-brutal-sm"
+                          : "border-drip-ink bg-drip-surface hover:bg-drip-volt/40"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
         )}
 
         {lotData && (

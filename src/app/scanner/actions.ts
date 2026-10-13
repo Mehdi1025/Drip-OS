@@ -6,7 +6,7 @@ import type { ScannedSkinPayload } from "@/lib/scanner/types";
 import { normalizeTrackCode } from "@/lib/scanner/track-code";
 import { createSupabaseAdmin } from "@/lib/supabase/admin";
 
-const SHIPPABLE_STATUSES = ["cut"] as const;
+const SHIPPABLE_STATUSES = ["imposed", "printed", "cut"] as const;
 
 export type FetchSkinByTrackResult =
   | { ok: true; skin: ScannedSkinPayload; displayLabel: string }
@@ -15,6 +15,17 @@ export type FetchSkinByTrackResult =
 export type ShipSkinResult = { ok: true } | { ok: false; error: string };
 
 export async function fetchSkinByTrackCode(
+  rawCode: string
+): Promise<FetchSkinByTrackResult> {
+  try {
+    return await fetchSkinByTrackCodeInner(rawCode);
+  } catch (e) {
+    console.error("[scanner] fetchSkinByTrackCode", e);
+    return { ok: false, error: "Erreur serveur lors de la lecture du code." };
+  }
+}
+
+async function fetchSkinByTrackCodeInner(
   rawCode: string
 ): Promise<FetchSkinByTrackResult> {
   const trackCode = normalizeTrackCode(rawCode);
@@ -77,6 +88,19 @@ export async function fetchSkinByTrackCode(
 }
 
 export async function markSkinShipped(skinId: string): Promise<ShipSkinResult> {
+  try {
+    return await markSkinShippedInner(skinId);
+  } catch (e) {
+    console.error("[scanner] markSkinShipped", e);
+    return { ok: false, error: "Erreur serveur lors de l'expédition." };
+  }
+}
+
+async function markSkinShippedInner(skinId: string): Promise<ShipSkinResult> {
+  if (!skinId?.trim()) {
+    return { ok: false, error: "Skin invalide." };
+  }
+
   const supabase = createSupabaseAdmin();
 
   const { data: existing, error: readError } = await supabase
@@ -93,22 +117,35 @@ export async function markSkinShipped(skinId: string): Promise<ShipSkinResult> {
     return { ok: false, error: "Ce skin est déjà expédié." };
   }
 
-  if (!SHIPPABLE_STATUSES.includes(existing.status as (typeof SHIPPABLE_STATUSES)[number])) {
+  if (
+    !SHIPPABLE_STATUSES.includes(
+      existing.status as (typeof SHIPPABLE_STATUSES)[number]
+    )
+  ) {
     return {
       ok: false,
-      error: `Statut "${existing.status}" — contrôle atelier requis (attendu: cut).`,
+      error: `Statut « ${existing.status} » — passe d'abord par Imposition / Atelier (pending ou scrap).`,
     };
   }
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("skins")
     .update({ status: "shipped" })
     .eq("id", skinId)
-    .eq("status", "cut");
+    .in("status", [...SHIPPABLE_STATUSES])
+    .select("id")
+    .maybeSingle();
 
   if (error) {
     console.error("[scanner] markSkinShipped", error);
     return { ok: false, error: "Échec mise à jour expédition." };
+  }
+
+  if (!updated) {
+    return {
+      ok: false,
+      error: "Mise à jour impossible (statut changé entre-temps). Rescanne le code.",
+    };
   }
 
   revalidatePath("/scanner");

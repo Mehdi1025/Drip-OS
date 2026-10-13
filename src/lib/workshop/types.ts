@@ -18,3 +18,10 @@ export type WorkshopLotData = {
   lotId: string;
   sheets: WorkshopSheet[];
 };
+
+export type RecentWorkshopLot = {
+  lotId: string;
+  createdAt: string;
+  /** Skins encore visibles en atelier (imposed / printed) */
+  pendingControl: number;
+};

@@ -4,7 +4,12 @@ import { revalidatePath } from "next/cache";
 import { isValidLotId, normalizeLotId } from "@/lib/workshop/lot-pattern";
 import type { ScrapReasonValue } from "@/lib/workshop/scrap-reasons";
 import { isScrapReason } from "@/lib/workshop/scrap-reasons";
-import type { WorkshopLotData, WorkshopSheet, WorkshopSkin } from "@/lib/workshop/types";
+import type {
+  RecentWorkshopLot,
+  WorkshopLotData,
+  WorkshopSheet,
+  WorkshopSkin,
+} from "@/lib/workshop/types";
 import { createSupabaseAdmin } from "@/lib/supabase/admin";
 
 const ACTIVE_WORKSHOP_STATUSES = ["imposed", "printed"] as const;
@@ -14,6 +19,76 @@ export type FetchLotResult =
   | { ok: false; error: string };
 
 export type SkinActionResult = { ok: true } | { ok: false; error: string };
+
+const RECENT_LOT_LIMIT = 10;
+
+/** Derniers lots créés (Imposition), avec nombre de skins encore à contrôler. */
+export async function fetchRecentWorkshopLots(): Promise<RecentWorkshopLot[]> {
+  try {
+    const supabase = createSupabaseAdmin();
+
+    const { data: lots, error: lotsError } = await supabase
+      .from("lots")
+      .select("id, created_at")
+      .order("created_at", { ascending: false })
+      .limit(RECENT_LOT_LIMIT);
+
+    if (lotsError || !lots?.length) {
+      if (lotsError) console.error("[workshop] recent lots", lotsError);
+      return [];
+    }
+
+    const lotIds = lots.map((l) => l.id);
+
+    const { data: sheets, error: sheetsError } = await supabase
+      .from("sheets")
+      .select("id, lot_id")
+      .in("lot_id", lotIds);
+
+    if (sheetsError || !sheets?.length) {
+      return lots.map((l) => ({
+        lotId: l.id,
+        createdAt: l.created_at,
+        pendingControl: 0,
+      }));
+    }
+
+    const sheetIds = sheets.map((s) => s.id);
+    const lotBySheet = new Map(sheets.map((s) => [s.id, s.lot_id]));
+
+    const { data: skins, error: skinsError } = await supabase
+      .from("skins")
+      .select("sheet_id, status")
+      .in("sheet_id", sheetIds)
+      .in("status", [...ACTIVE_WORKSHOP_STATUSES]);
+
+    if (skinsError) {
+      console.error("[workshop] recent lots skins", skinsError);
+      return lots.map((l) => ({
+        lotId: l.id,
+        createdAt: l.created_at,
+        pendingControl: 0,
+      }));
+    }
+
+    const pendingByLot = new Map<string, number>();
+    for (const skin of skins ?? []) {
+      if (!skin.sheet_id) continue;
+      const lotId = lotBySheet.get(skin.sheet_id);
+      if (!lotId) continue;
+      pendingByLot.set(lotId, (pendingByLot.get(lotId) ?? 0) + 1);
+    }
+
+    return lots.map((l) => ({
+      lotId: l.id,
+      createdAt: l.created_at,
+      pendingControl: pendingByLot.get(l.id) ?? 0,
+    }));
+  } catch (e) {
+    console.error("[workshop] fetchRecentWorkshopLots", e);
+    return [];
+  }
+}
 
 function buildSheetSlots(skins: WorkshopSkin[]): (WorkshopSkin | null)[] {
   const slots: (WorkshopSkin | null)[] = [null, null, null, null];
