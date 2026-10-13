@@ -13,6 +13,9 @@ export default function RootError({
       <p className="max-w-md text-center text-sm font-medium text-drip-ink/70">
         {error.message || "Une erreur est survenue au chargement."}
       </p>
+      {error.digest && (
+        <p className="font-mono text-xs text-drip-ink/40">{error.digest}</p>
+      )}
       <button
         type="button"
         onClick={() => reset()}

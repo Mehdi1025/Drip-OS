@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { buildScanDisplayLabel } from "@/lib/scanner/display-label";
 import type { ScannedSkinPayload } from "@/lib/scanner/types";
 import { normalizeTrackCode } from "@/lib/scanner/track-code";
@@ -148,6 +147,5 @@ async function markSkinShippedInner(skinId: string): Promise<ShipSkinResult> {
     };
   }
 
-  revalidatePath("/scanner");
   return { ok: true };
 }

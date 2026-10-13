@@ -34,12 +34,12 @@ export function BarcodeScanner({ paused, onScan, onError }: Props) {
   const reactId = useId();
   const regionId = `barcode-scanner-${reactId.replace(/:/g, "")}`;
   const scannerRef = useRef<Html5Qrcode | null>(null);
+  const pausedRef = useRef(paused);
+  pausedRef.current = paused;
   const onScanRef = useRef(onScan);
   onScanRef.current = onScan;
 
   useEffect(() => {
-    if (paused) return;
-
     let cancelled = false;
     const html5QrCode = new Html5Qrcode(regionId, { verbose: false });
     scannerRef.current = html5QrCode;
@@ -50,7 +50,8 @@ export function BarcodeScanner({ paused, onScan, onError }: Props) {
           { facingMode: "environment" },
           SCANNER_CONFIG,
           (decodedText) => {
-            if (!cancelled) onScanRef.current(decodedText);
+            if (cancelled || pausedRef.current) return;
+            onScanRef.current(decodedText);
           },
           () => {
             /* scan attempt — ignore */
@@ -79,7 +80,7 @@ export function BarcodeScanner({ paused, onScan, onError }: Props) {
           /* déjà arrêté */
         });
     };
-  }, [paused, regionId, onError]);
+  }, [regionId, onError]);
 
   return (
     <div

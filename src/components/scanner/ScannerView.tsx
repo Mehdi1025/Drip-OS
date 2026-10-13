@@ -75,16 +75,21 @@ export function ScannerView() {
   function handleShipped() {
     if (!skin) return;
     setError(null);
+    const skinId = skin.skinId;
     startShip(async () => {
-      const result = await markSkinShipped(skin.skinId);
-      if (!result.ok) {
-        setError(result.error);
-        return;
+      try {
+        const result = await markSkinShipped(skinId);
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+        setSkin(null);
+        setDisplayLabel(null);
+        setCameraPaused(false);
+        lastScanRef.current = null;
+      } catch {
+        setError("Impossible de contacter le serveur. Réessaie.");
       }
-      setSkin(null);
-      setDisplayLabel(null);
-      setCameraPaused(false);
-      lastScanRef.current = null;
     });
   }
 
