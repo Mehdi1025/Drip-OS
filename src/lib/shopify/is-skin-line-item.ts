@@ -16,6 +16,10 @@ function propertyValue(
  * Adjust matchers to match your catalog (product_type, tags via metafields, SKU, etc.).
  */
 export function isSkinLineItem(item: ShopifyLineItem): boolean {
+  if (process.env.SHOPIFY_IMPORT_ALL_LINE_ITEMS === "true") {
+    return true;
+  }
+
   const typeProp = propertyValue(item, "type") ?? propertyValue(item, "_type");
   if (typeProp?.toLowerCase() === "skin") {
     return true;
@@ -32,7 +36,14 @@ export function isSkinLineItem(item: ShopifyLineItem): boolean {
   }
 
   const title = item.title.trim().toLowerCase();
-  if (title === "skin" || title.includes(" skin")) {
+  if (
+    title === "skin" ||
+    title.includes(" skin") ||
+    title.includes("card") ||
+    title.includes("drip") ||
+    title.includes("vinyle") ||
+    title.includes("skin card")
+  ) {
     return true;
   }
 
