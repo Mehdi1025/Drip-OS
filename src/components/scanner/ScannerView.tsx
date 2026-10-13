@@ -139,7 +139,7 @@ export function ScannerView() {
         <h1 className="text-2xl font-black uppercase">Scanner</h1>
       </header>
 
-      <div className="flex-1 space-y-4 overflow-y-auto overscroll-y-contain px-4 py-4 pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))]">
+      <div className="flex-1 space-y-4 overflow-y-auto overscroll-y-contain px-[calc(1rem+var(--drip-safe-left))] py-4 pr-[calc(1rem+var(--drip-safe-right))] pb-[calc(5.5rem+var(--drip-safe-bottom))]">
         <BarcodeScanner
           paused={cameraPaused || isFetching}
           onScan={resolveCode}
@@ -233,7 +233,7 @@ export function ScannerView() {
         )}
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t-4 border-drip-ink bg-drip-paper pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t-4 border-drip-ink bg-drip-paper pb-[calc(1rem+var(--drip-safe-bottom))] pl-[var(--drip-safe-left)] pr-[var(--drip-safe-right)]">
         <div className="mx-auto max-w-lg px-4 pt-4">
           <button
             type="button"

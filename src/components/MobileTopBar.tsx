@@ -29,7 +29,7 @@ export function MobileTopBar() {
   const title = titleForPath(pathname);
 
   return (
-    <header className="sticky top-0 z-40 flex items-center justify-between gap-3 border-b-4 border-drip-ink bg-drip-volt px-4 py-3 md:hidden">
+    <header className="sticky top-0 z-40 flex min-h-[var(--drip-mobile-top-h)] items-center justify-between gap-3 border-b-4 border-drip-ink bg-drip-volt px-4 pb-3 pl-[calc(1rem+var(--drip-safe-left))] pr-[calc(1rem+var(--drip-safe-right))] pt-[calc(0.75rem+var(--drip-safe-top))] lg:hidden">
       <Link
         href="/imposition"
         className="shrink-0 border-2 border-drip-ink bg-drip-paper px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.2em]"

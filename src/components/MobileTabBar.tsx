@@ -24,13 +24,13 @@ export function MobileTabBar() {
 
   return (
     <nav
-      className={`fixed bottom-0 left-0 right-0 z-50 border-t-4 border-drip-ink bg-drip-paper md:hidden ${
+      className={`fixed bottom-0 left-0 right-0 z-50 h-[calc(var(--drip-tab-bar-h)+var(--drip-safe-bottom))] border-t-4 border-drip-ink bg-drip-paper pb-[var(--drip-safe-bottom)] pl-[var(--drip-safe-left)] pr-[var(--drip-safe-right)] lg:hidden ${
         onScanner ? "pointer-events-none opacity-0" : ""
       }`}
       aria-label="Navigation mobile"
       aria-hidden={onScanner}
     >
-      <ul className="flex pb-[env(safe-area-inset-bottom,0px)]">
+      <ul className="flex h-[var(--drip-tab-bar-h)]">
         {tabs.map(({ href, icon: Icon, label }) => {
           const active =
             pathname === href ||
