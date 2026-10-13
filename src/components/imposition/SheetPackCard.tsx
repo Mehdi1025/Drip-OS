@@ -11,7 +11,7 @@ export function SheetPackCard({ sheetNumber, skins }: Props) {
   const bySlot = SLOTS.map((slot) => skins[slot - 1] ?? null);
 
   return (
-    <article className="border-4 border-[#0a0a0a] bg-[#f2ede4] shadow-[6px_6px_0_0_#0a0a0a]">
+    <article className="max-w-full border-4 border-[#0a0a0a] bg-[#f2ede4] shadow-brutal-sm sm:shadow-brutal">
       <header className="flex items-center justify-between border-b-4 border-[#0a0a0a] bg-[#ccff00] px-4 py-2">
         <span className="text-xs font-black uppercase tracking-widest text-[#0a0a0a]">
           Feuille

@@ -28,7 +28,7 @@ export function MobileTopBar() {
   const onScanner = pathname.startsWith("/scanner");
 
   return (
-    <header className="sticky top-0 z-40 flex min-h-[var(--drip-mobile-top-h)] items-center justify-between gap-2 border-b-4 border-drip-ink bg-drip-volt px-3 pb-3 pl-[calc(0.75rem+var(--drip-safe-left))] pr-[calc(0.75rem+var(--drip-safe-right))] pt-[calc(0.75rem+var(--drip-safe-top))] md:hidden">
+    <header className="drip-gutter-x sticky top-0 z-40 flex min-h-[var(--drip-mobile-top-h)] items-center justify-between gap-2 border-b-4 border-drip-ink bg-drip-volt pb-3 pt-[calc(0.75rem+var(--drip-safe-top))] md:hidden">
       {onScanner ? (
         <Link
           href="/imposition"

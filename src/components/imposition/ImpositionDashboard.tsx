@@ -37,7 +37,7 @@ export function ImpositionDashboard({ initialSkins }: Props) {
       }
     >
       <div className="flex flex-col-reverse gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-8">
-        <section className="min-w-0">
+        <section className="min-w-0 max-w-full">
           <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-xs font-black uppercase tracking-widest sm:text-sm">
               Aperçu par paquets de 4
@@ -55,7 +55,7 @@ export function ImpositionDashboard({ initialSkins }: Props) {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-4 min-[480px]:grid-cols-2 xl:grid-cols-3 xl:gap-6">
+            <div className="grid grid-cols-1 gap-4 pr-1 min-[480px]:grid-cols-2 xl:grid-cols-3 xl:gap-6 xl:pr-0">
               {packs.map((pack, index) => (
                 <SheetPackCard
                   key={`pack-${index + 1}`}

@@ -20,7 +20,7 @@ export function DashboardShell({ kicker, title, stats, children }: Props) {
           {stats ? <StatRow>{stats}</StatRow> : null}
         </div>
       </header>
-      <div className="px-4 py-6 sm:px-8 sm:py-8">{children}</div>
+      <div className="drip-gutter-x py-6 sm:py-8">{children}</div>
     </div>
   );
 }
