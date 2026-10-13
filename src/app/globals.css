@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --drip-paper: #f2ede4;
+  --drip-ink: #0a0a0a;
+  --drip-volt: #ccff00;
+}
+
+body {
+  @apply bg-drip-paper text-drip-ink antialiased;
+}
+
+@layer components {
+  .drip-page {
+    @apply min-h-full bg-drip-paper text-drip-ink;
+  }
+
+  .drip-header {
+    @apply border-b-4 border-drip-ink bg-drip-surface px-4 py-5 sm:px-8 sm:py-6;
+  }
+
+  .drip-kicker {
+    @apply text-xs font-black uppercase tracking-[0.2em] text-drip-ink/60;
+  }
+
+  .drip-title {
+    @apply mt-1 text-3xl font-black uppercase leading-none tracking-tight sm:text-4xl;
+  }
+
+  .drip-card {
+    @apply border-4 border-drip-ink bg-drip-surface shadow-brutal;
+  }
+
+  .drip-stat {
+    @apply border-4 border-drip-ink px-4 py-3 shadow-brutal-sm;
+  }
+
+  .drip-stat-volt {
+    @apply border-4 border-drip-ink bg-drip-volt px-4 py-3 shadow-brutal-sm;
+  }
+
+  .drip-btn-volt {
+    @apply border-4 border-drip-ink bg-drip-volt font-black uppercase text-drip-ink shadow-brutal transition-transform hover:translate-x-0.5 hover:translate-y-0.5 active:translate-x-1 active:translate-y-1 disabled:cursor-not-allowed disabled:opacity-45 disabled:shadow-none;
+  }
+
+  .drip-empty {
+    @apply border-4 border-dashed border-drip-ink/35 bg-drip-surface/60 p-12 text-center;
+  }
+}
