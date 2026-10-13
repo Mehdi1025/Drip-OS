@@ -10,5 +10,10 @@ export function createSupabaseAdmin() {
       persistSession: false,
       autoRefreshToken: false,
     },
+    global: {
+      // Next.js 14 met en cache les GET Supabase par défaut → file d'attente figée.
+      fetch: (url, options = {}) =>
+        fetch(url, { ...options, cache: "no-store" }),
+    },
   });
 }
