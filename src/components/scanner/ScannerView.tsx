@@ -2,11 +2,12 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import { PackageCheck, Keyboard } from "lucide-react";
+import { Keyboard, PackageCheck } from "lucide-react";
 import {
   fetchSkinByTrackCode,
   markSkinShipped,
 } from "@/app/scanner/actions";
+import type { CameraErrorCopy } from "@/lib/scanner/camera-error-message";
 import type { ScannedSkinPayload } from "@/lib/scanner/types";
 import { normalizeTrackCode } from "@/lib/scanner/track-code";
 
@@ -16,8 +17,8 @@ const BarcodeScanner = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex min-h-[220px] items-center justify-center border-4 border-[#0a0a0a] bg-[#0a0a0a] text-sm font-bold uppercase text-white">
-        Initialisation caméra…
+      <div className="flex min-h-[220px] items-center justify-center border-4 border-drip-ink bg-drip-ink text-sm font-bold uppercase text-drip-paper">
+        Chargement du scanner…
       </div>
     ),
   }
@@ -29,7 +30,10 @@ const FLASH_MS = 700;
 export function ScannerView() {
   const [skin, setSkin] = useState<ScannedSkinPayload | null>(null);
   const [displayLabel, setDisplayLabel] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [cameraNotice, setCameraNotice] = useState<CameraErrorCopy | null>(
+    null
+  );
   const [flash, setFlash] = useState(false);
   const [cameraPaused, setCameraPaused] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
@@ -37,6 +41,15 @@ export function ScannerView() {
   const [isFetching, startFetch] = useTransition();
   const [isShipping, startShip] = useTransition();
   const lastScanRef = useRef<{ code: string; at: number } | null>(null);
+
+  const handleCameraBlocked = useCallback((copy: CameraErrorCopy) => {
+    setCameraNotice(copy);
+    setManualOpen(true);
+  }, []);
+
+  const handleCameraReady = useCallback(() => {
+    setCameraNotice(null);
+  }, []);
 
   const resolveCode = useCallback((raw: string) => {
     const code = normalizeTrackCode(raw);
@@ -49,20 +62,24 @@ export function ScannerView() {
     }
     lastScanRef.current = { code, at: now };
 
-    setError(null);
+    setApiError(null);
     startFetch(async () => {
-      const result = await fetchSkinByTrackCode(code);
-      if (!result.ok) {
-        setError(result.error);
-        setSkin(null);
-        setDisplayLabel(null);
-        return;
-      }
+      try {
+        const result = await fetchSkinByTrackCode(code);
+        if (!result.ok) {
+          setApiError(result.error);
+          setSkin(null);
+          setDisplayLabel(null);
+          return;
+        }
 
-      setSkin(result.skin);
-      setDisplayLabel(result.displayLabel);
-      setFlash(true);
-      setCameraPaused(true);
+        setSkin(result.skin);
+        setDisplayLabel(result.displayLabel);
+        setFlash(true);
+        setCameraPaused(true);
+      } catch {
+        setApiError("Erreur réseau lors de la lecture du code.");
+      }
     });
   }, []);
 
@@ -74,13 +91,13 @@ export function ScannerView() {
 
   function handleShipped() {
     if (!skin) return;
-    setError(null);
+    setApiError(null);
     const skinId = skin.skinId;
     startShip(async () => {
       try {
         const result = await markSkinShipped(skinId);
         if (!result.ok) {
-          setError(result.error);
+          setApiError(result.error);
           return;
         }
         setSkin(null);
@@ -88,7 +105,7 @@ export function ScannerView() {
         setCameraPaused(false);
         lastScanRef.current = null;
       } catch {
-        setError("Impossible de contacter le serveur. Réessaie.");
+        setApiError("Impossible de contacter le serveur. Réessaie.");
       }
     });
   }
@@ -100,6 +117,9 @@ export function ScannerView() {
       skin.status as (typeof shippableStatuses)[number]
     ) &&
     !isShipping;
+
+  const showHint =
+    !displayLabel && !apiError && !cameraNotice && !manualOpen;
 
   return (
     <div
@@ -123,22 +143,27 @@ export function ScannerView() {
         <BarcodeScanner
           paused={cameraPaused || isFetching}
           onScan={resolveCode}
-          onError={(message) => setError(message)}
+          onCameraBlocked={handleCameraBlocked}
+          onCameraReady={handleCameraReady}
         />
 
         <button
           type="button"
           onClick={() => setManualOpen((v) => !v)}
-          className="flex w-full items-center justify-center gap-2 border-2 border-drip-ink/20 py-2 text-xs font-bold uppercase text-drip-ink/60"
+          className="drip-touch flex w-full items-center justify-center gap-2 border-4 border-drip-ink bg-drip-surface py-3 text-xs font-bold uppercase"
           data-testid="toggle-manual-entry"
         >
           <Keyboard className="h-4 w-4" />
-          {manualOpen ? "Masquer saisie test" : "Saisie manuelle (test)"}
+          {manualOpen
+            ? "Masquer saisie manuelle"
+            : cameraNotice
+              ? "Saisie manuelle (recommandée)"
+              : "Saisie manuelle"}
         </button>
 
-        {manualOpen && (
+        {(manualOpen || cameraNotice) && (
           <form
-            className="flex gap-2"
+            className="flex flex-col gap-2 sm:flex-row"
             onSubmit={(e) => {
               e.preventDefault();
               resolveCode(manualCode);
@@ -149,24 +174,26 @@ export function ScannerView() {
               value={manualCode}
               onChange={(e) => setManualCode(e.target.value)}
               placeholder="1042-F1-S1"
+              autoComplete="off"
               className="min-h-[48px] flex-1 border-4 border-drip-ink bg-drip-surface px-3 font-mono text-sm outline-none"
               data-testid="manual-track-input"
             />
             <button
               type="submit"
-              className="drip-btn-volt border-4 px-4 py-2 shadow-brutal-sm"
+              className="drip-btn-volt drip-touch border-4 px-6 py-3 shadow-brutal-sm sm:px-4 sm:py-2"
             >
-              OK
+              Valider
             </button>
           </form>
         )}
 
-        {error && (
+        {apiError && (
           <p
-            className="border-4 border-red-500 bg-red-950 px-3 py-3 text-sm font-bold"
+            className="border-4 border-red-600 bg-red-100 px-3 py-3 text-sm font-bold text-red-950"
             data-testid="scanner-error"
+            role="alert"
           >
-            {error}
+            {apiError}
           </p>
         )}
 
@@ -199,7 +226,7 @@ export function ScannerView() {
           </section>
         )}
 
-        {!displayLabel && !error && (
+        {showHint && (
           <p className="text-center text-sm font-medium text-drip-ink/45">
             Vise le code-barres ou QR du track code sur l&apos;étiquette.
           </p>
@@ -208,16 +235,16 @@ export function ScannerView() {
 
       <div className="fixed bottom-0 left-0 right-0 z-40 border-t-4 border-drip-ink bg-drip-paper pb-[max(1rem,env(safe-area-inset-bottom))]">
         <div className="mx-auto max-w-lg px-4 pt-4">
-        <button
-          type="button"
-          disabled={!canShip}
-          onClick={handleShipped}
-          className="drip-btn-volt flex w-full min-h-[64px] items-center justify-center gap-3 text-lg shadow-brutal disabled:opacity-40"
-          data-testid="mark-shipped-cta"
-        >
-          <PackageCheck className="h-8 w-8" strokeWidth={3} />
-          {isShipping ? "Envoi…" : "Marquer Expédié"}
-        </button>
+          <button
+            type="button"
+            disabled={!canShip}
+            onClick={handleShipped}
+            className="drip-btn-volt drip-touch flex w-full min-h-[64px] items-center justify-center gap-3 text-lg shadow-brutal disabled:opacity-40"
+            data-testid="mark-shipped-cta"
+          >
+            <PackageCheck className="h-8 w-8" strokeWidth={3} />
+            {isShipping ? "Envoi…" : "Marquer Expédié"}
+          </button>
         </div>
       </div>
     </div>
