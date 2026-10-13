@@ -9,8 +9,10 @@ import {
 } from "@/lib/imposition/lot-id";
 import {
   buildImpositionTrackCode,
+  buildTempImpositionTrackCode,
   extractOrderPrefix,
 } from "@/lib/imposition/track-code";
+import { isNonProductionCatalogTitle } from "@/lib/shopify/is-skin-line-item";
 import type { PendingSkin } from "@/lib/imposition/types";
 import {
   countDistinctOrders,
@@ -65,6 +67,10 @@ export async function fetchPendingSkins(): Promise<PendingSkin[]> {
     const orderRecord = Array.isArray(order) ? order[0] : order;
     if (!orderRecord) return [];
 
+    if (isNonProductionCatalogTitle(row.design_name)) {
+      return [];
+    }
+
     return [
       {
         id: row.id,
@@ -118,6 +124,7 @@ export async function generateLotFromPending(): Promise<GenerateLotResult> {
 
   const packs = chunkSkins(pending);
   let sheetCount = 0;
+  let tempTrackSequence = Date.now() % 1_000_000;
 
   for (let sheetIndex = 0; sheetIndex < packs.length; sheetIndex++) {
     const pack = packs[sheetIndex];
@@ -145,6 +152,24 @@ export async function generateLotFromPending(): Promise<GenerateLotResult> {
 
     for (let slot = 0; slot < pack.length; slot++) {
       const skin = pack[slot];
+      tempTrackSequence += 1;
+      const { error: tempError } = await supabase
+        .from("skins")
+        .update({ track_code: buildTempImpositionTrackCode(tempTrackSequence) })
+        .eq("id", skin.id)
+        .in("status", ["pending", "scrap"]);
+
+      if (tempError) {
+        console.error("[imposition] skin temp track_code", tempError);
+        return {
+          ok: false,
+          error: `Échec préparation skin ${skin.design_name} (code traçabilité).`,
+        };
+      }
+    }
+
+    for (let slot = 0; slot < pack.length; slot++) {
+      const skin = pack[slot];
       const slotNumber = slot + 1;
       const orderPrefix = extractOrderPrefix(skin.track_code, skin.id_shopify);
       const trackCode = buildImpositionTrackCode(
@@ -166,9 +191,13 @@ export async function generateLotFromPending(): Promise<GenerateLotResult> {
 
       if (skinUpdateError) {
         console.error("[imposition] skin update", skinUpdateError);
+        const detail =
+          skinUpdateError.code === "23505"
+            ? " (code traçabilité déjà utilisé)"
+            : "";
         return {
           ok: false,
-          error: `Échec mise à jour skin ${skin.design_name}.`,
+          error: `Échec mise à jour skin ${skin.design_name}.${detail}`,
         };
       }
     }

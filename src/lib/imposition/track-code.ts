@@ -16,3 +16,9 @@ export function extractOrderPrefix(
   if (match?.[1]) return match[1];
   return String(fallbackShopifyId);
 }
+
+/** Code temporaire unique pendant l'imposition (évite conflit UNIQUE sur track_code). */
+export function buildTempImpositionTrackCode(sequence: number): string {
+  const n = 900_000_000_000 + (sequence % 99_999_999_999);
+  return `${n}-F0-S0`;
+}

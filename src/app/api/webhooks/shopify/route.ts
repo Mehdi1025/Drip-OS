@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { backfillMissingLineItemsForOrderUuid } from "@/lib/shopify/backfill-line-items";
 import { createSupabaseAdmin } from "@/lib/supabase/admin";
 import { isSkinLineItem } from "@/lib/shopify/is-skin-line-item";
 import {
@@ -8,6 +9,10 @@ import {
   resolveOrderTrackPrefix,
   resolveShippingMethod,
 } from "@/lib/shopify/order-helpers";
+import {
+  extractShopifyOrderIdFromWebhookBody,
+  resolveLineItemIdForWebhookRow,
+} from "@/lib/shopify/parse-webhook-ids";
 import type { ShopifyOrderWebhookPayload } from "@/lib/shopify/types";
 import { HMAC_HEADER, verifyShopifyWebhook } from "@/lib/shopify/verify-webhook";
 
@@ -20,7 +25,10 @@ function jsonError(message: string, status: number) {
   return NextResponse.json({ ok: false, error: message }, { status });
 }
 
-function parseOrderPayload(rawBody: string): ShopifyOrderWebhookPayload {
+function parseOrderPayload(rawBody: string): {
+  order: ShopifyOrderWebhookPayload;
+  orderId: string;
+} {
   let parsed: unknown;
   try {
     parsed = JSON.parse(rawBody);
@@ -28,12 +36,7 @@ function parseOrderPayload(rawBody: string): ShopifyOrderWebhookPayload {
     throw new Error("Invalid JSON payload");
   }
 
-  if (
-    !parsed ||
-    typeof parsed !== "object" ||
-    !("id" in parsed) ||
-    typeof (parsed as { id: unknown }).id !== "number"
-  ) {
+  if (!parsed || typeof parsed !== "object") {
     throw new Error("Payload is not a valid Shopify order");
   }
 
@@ -43,7 +46,12 @@ function parseOrderPayload(rawBody: string): ShopifyOrderWebhookPayload {
     throw new Error("Order payload missing line_items array");
   }
 
-  return order;
+  const orderId = extractShopifyOrderIdFromWebhookBody(rawBody);
+  if (!orderId) {
+    throw new Error("Order payload missing Shopify order id");
+  }
+
+  return { order: order, orderId };
 }
 
 export async function POST(request: NextRequest) {
@@ -69,10 +77,9 @@ export async function POST(request: NextRequest) {
       return jsonError("Invalid HMAC signature", 401);
     }
 
-    const shopifyOrder = parseOrderPayload(rawBody);
+    const { order: shopifyOrder, orderId: idShopify } =
+      parseOrderPayload(rawBody);
     const supabase = createSupabaseAdmin();
-
-    const idShopify = shopifyOrder.id;
     const customerName = resolveCustomerName(shopifyOrder);
     const shippingMethod = resolveShippingMethod(shopifyOrder);
     const orderTrackPrefix = resolveOrderTrackPrefix(shopifyOrder);
@@ -137,33 +144,61 @@ export async function POST(request: NextRequest) {
     }
 
     if (existingSkinCount && existingSkinCount > 0) {
+      const lineItemsBackfilled = await backfillMissingLineItemsForOrderUuid(
+        orderId,
+        shopifyOrder.line_items,
+        rawBody
+      );
       console.info("[shopify/webhook] duplicate", {
         id_shopify: idShopify,
         order_id: orderId,
         skins_created: 0,
+        line_items_backfilled: lineItemsBackfilled,
       });
       return NextResponse.json({
         ok: true,
         duplicate: true,
         order_id: orderId,
         skins_created: 0,
+        line_items_backfilled: lineItemsBackfilled,
         message: "Order already processed",
       });
     }
-
-    const skinLineItems = shopifyOrder.line_items.filter(isSkinLineItem);
 
     const skinRows: {
       order_id: string;
       design_name: string;
       status: "pending";
       track_code: string;
+      shopify_line_item_id: string | null;
     }[] = [];
 
-    skinLineItems.forEach((item, lineIndex) => {
-      const lineItemIndex = lineIndex + 1;
+    let skinLineOrdinal = 0;
+    for (
+      let shopifyLineIndex = 0;
+      shopifyLineIndex < shopifyOrder.line_items.length;
+      shopifyLineIndex += 1
+    ) {
+      const item = shopifyOrder.line_items[shopifyLineIndex];
+      if (!isSkinLineItem(item)) continue;
+
+      skinLineOrdinal += 1;
+      const lineItemIndex = skinLineOrdinal;
       const quantity = Math.max(0, Math.floor(Number(item.quantity) || 0));
       const designName = resolveDesignName(item);
+      const lineItemId = resolveLineItemIdForWebhookRow(
+        rawBody,
+        shopifyOrder.line_items,
+        shopifyLineIndex
+      );
+
+      if (!lineItemId) {
+        console.warn("[shopify/webhook] missing line_item id", {
+          id_shopify: idShopify,
+          title: item.title,
+          shopify_line_index: shopifyLineIndex,
+        });
+      }
 
       for (let skinIndex = 1; skinIndex <= quantity; skinIndex++) {
         skinRows.push({
@@ -171,9 +206,10 @@ export async function POST(request: NextRequest) {
           design_name: designName,
           status: "pending",
           track_code: buildTrackCode(orderTrackPrefix, lineItemIndex, skinIndex),
+          shopify_line_item_id: lineItemId,
         });
       }
-    });
+    }
 
     if (skinRows.length === 0) {
       console.info("[shopify/webhook] no skins matched", {

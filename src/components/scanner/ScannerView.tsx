@@ -30,6 +30,9 @@ const FLASH_MS = 700;
 
 export function ScannerView() {
   const [skin, setSkin] = useState<ScannedSkinPayload | null>(null);
+  const [orderSkins, setOrderSkins] = useState<ScannedSkinPayload[] | null>(
+    null
+  );
   const [displayLabel, setDisplayLabel] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
   const [cameraNotice, setCameraNotice] = useState<CameraErrorCopy | null>(
@@ -71,11 +74,13 @@ export function ScannerView() {
           setApiError(result.error);
           setSkin(null);
           setDisplayLabel(null);
+          setOrderSkins(null);
           return;
         }
 
         setSkin(result.skin);
         setDisplayLabel(result.displayLabel);
+        setOrderSkins(result.orderSkins ?? null);
         setFlash(true);
         setCameraPaused(true);
       } catch {
@@ -101,8 +106,12 @@ export function ScannerView() {
           setApiError(result.error);
           return;
         }
+        if (result.shopifyWarning) {
+          setApiError(result.shopifyWarning);
+        }
         setSkin(null);
         setDisplayLabel(null);
+        setOrderSkins(null);
         setCameraPaused(false);
         lastScanRef.current = null;
       } catch {
@@ -185,7 +194,7 @@ export function ScannerView() {
             <input
               value={manualCode}
               onChange={(e) => setManualCode(e.target.value)}
-              placeholder="1042-F1-S1"
+              placeholder="1042-F1-S1 ou ID Shopify"
               autoComplete="off"
               className="min-h-[48px] flex-1 border-4 border-drip-ink bg-drip-surface px-3 font-mono text-sm outline-none"
               data-testid="manual-track-input"
@@ -234,6 +243,35 @@ export function ScannerView() {
                 Statut actuel : {skin.status} — génère un lot (Imposition) ou
                 valide l&apos;atelier avant expédition.
               </p>
+            )}
+            {orderSkins && orderSkins.length > 1 && (
+              <div className="mt-4 space-y-2 border-t border-[#86efac]/40 pt-4">
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#bbf7d0]">
+                  {orderSkins.length} skins — choisir celui à expédier
+                </p>
+                <ul className="flex flex-col gap-2">
+                  {orderSkins.map((s) => (
+                    <li key={s.skinId}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSkin(s);
+                          setDisplayLabel(
+                            `${s.designName} · ${s.trackCode} · ${s.status}`
+                          );
+                        }}
+                        className={`w-full border-2 px-3 py-2 text-left font-mono text-xs ${
+                          s.skinId === skin.skinId
+                            ? "border-[#ccff00] bg-[#166534]"
+                            : "border-[#86efac]/50 bg-[#14532d]/80"
+                        }`}
+                      >
+                        {s.designName} — {s.trackCode} ({s.status})
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
           </section>
         )}

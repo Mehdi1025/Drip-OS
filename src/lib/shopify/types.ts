@@ -5,6 +5,7 @@ export interface ShopifyLineItemProperty {
 
 export interface ShopifyLineItem {
   id: number;
+  admin_graphql_api_id?: string;
   title: string;
   quantity: number;
   sku: string | null;
@@ -33,6 +34,7 @@ export interface ShopifyAddress {
 
 export interface ShopifyOrderWebhookPayload {
   id: number;
+  admin_graphql_api_id?: string;
   name: string;
   order_number?: number;
   customer: ShopifyCustomer | null;

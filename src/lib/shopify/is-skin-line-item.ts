@@ -1,5 +1,24 @@
 import type { ShopifyLineItem } from "@/lib/shopify/types";
 
+/** Produits Shopify à ne jamais imprimer (assurance, garantie, etc.). */
+const NON_PRODUCTION_TITLE_PATTERNS: RegExp[] = [
+  /protection plan/i,
+  /lens protection/i,
+  /extended warranty/i,
+  /warranty/i,
+  /shipping protection/i,
+  /route protection/i,
+  /gift card/i,
+  /^tip$/i,
+  /donation/i,
+];
+
+export function isNonProductionCatalogTitle(title: string): boolean {
+  const trimmed = title.trim();
+  if (!trimmed) return false;
+  return NON_PRODUCTION_TITLE_PATTERNS.some((re) => re.test(trimmed));
+}
+
 function propertyValue(
   item: ShopifyLineItem,
   name: string
@@ -16,6 +35,10 @@ function propertyValue(
  * Adjust matchers to match your catalog (product_type, tags via metafields, SKU, etc.).
  */
 export function isSkinLineItem(item: ShopifyLineItem): boolean {
+  if (isNonProductionCatalogTitle(item.title)) {
+    return false;
+  }
+
   if (process.env.SHOPIFY_IMPORT_ALL_LINE_ITEMS === "true") {
     return true;
   }
