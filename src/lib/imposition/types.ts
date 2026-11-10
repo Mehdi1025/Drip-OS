@@ -6,6 +6,7 @@ export type PendingSkin = {
   order_id: string;
   customer_name: string;
   id_shopify: number;
+  urgent?: boolean;
 };
 
 export type SheetPackPreview = {

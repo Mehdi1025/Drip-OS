@@ -19,6 +19,7 @@ import {
   decrementInventoryForLot,
 } from "@/lib/inventory/decrement-for-lot";
 import type { LotAwaitingFileRow } from "@/lib/lots/types";
+import { fetchUrgentOrderIds } from "@/lib/delais/urgent-orders";
 import { createSupabaseAdmin } from "@/lib/supabase/admin";
 
 export type GenerateLotResult =
@@ -33,6 +34,7 @@ export type GenerateLotResult =
   | { ok: false; error: string };
 
 export async function fetchPendingSkins(): Promise<PendingSkin[]> {
+  const urgentIds = await fetchUrgentOrderIds().catch(() => new Set<string>());
   let supabase;
   try {
     supabase = createSupabaseAdmin();
@@ -82,14 +84,24 @@ export async function fetchPendingSkins(): Promise<PendingSkin[]> {
         order_id: row.order_id,
         customer_name: orderRecord.customer_name,
         id_shopify: orderRecord.id_shopify,
+        urgent: urgentIds.has(row.order_id),
       },
     ];
   });
 }
 
-export async function generateLotFromPending(): Promise<GenerateLotResult> {
+export async function generateLotFromPending(
+  prioritizeUrgent = true
+): Promise<GenerateLotResult> {
   const supabase = createSupabaseAdmin();
-  const pending = await fetchPendingSkins();
+  let pending = await fetchPendingSkins();
+  if (prioritizeUrgent) {
+    pending = [...pending].sort((a, b) => {
+      const au = a.urgent ? 0 : 1;
+      const bu = b.urgent ? 0 : 1;
+      return au - bu;
+    });
+  }
 
   if (pending.length === 0) {
     return { ok: false, error: "Aucun skin en attente à imposer." };

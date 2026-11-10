@@ -40,6 +40,11 @@ export function SheetPackCard({ sheetNumber, skins }: Props) {
               <>
                 <p className="line-clamp-2 text-sm font-medium leading-tight">
                   {skin.design_name}
+                  {skin.urgent ? (
+                    <span className="ml-1.5 rounded bg-red-500/20 px-1 py-0.5 text-[9px] font-bold uppercase text-red-800">
+                      Urgent
+                    </span>
+                  ) : null}
                   {skin.reprint_of ? (
                     <span className="ml-1.5 rounded bg-drip-peach/30 px-1 py-0.5 text-[9px] font-bold uppercase">
                       Réimp.

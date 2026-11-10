@@ -32,6 +32,9 @@ export interface ShopifyAddress {
   name: string | null;
   first_name: string | null;
   last_name: string | null;
+  country_code?: string | null;
+  country?: string | null;
+  zip?: string | null;
 }
 
 export interface ShopifyOrderWebhookPayload {
@@ -39,6 +42,8 @@ export interface ShopifyOrderWebhookPayload {
   admin_graphql_api_id?: string;
   name: string;
   order_number?: number;
+  created_at?: string;
+  cancelled_at?: string | null;
   customer: ShopifyCustomer | null;
   shipping_address: ShopifyAddress | null;
   shipping_lines: ShopifyShippingLine[];

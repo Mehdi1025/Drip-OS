@@ -6,6 +6,8 @@ import { StatsTrendSection } from "@/components/stats/StatsTrendSection";
 import { DashboardShell } from "@/components/layout/DashboardShell";
 import { StatBadge } from "@/components/layout/StatBadge";
 import { formatAgeHours } from "@/lib/stats/metrics";
+import type { DelaisKpiSnapshot } from "@/app/delais/actions";
+import { formatPercent } from "@/lib/delais/format";
 import type { AdvancedStatsPayload, SkinStatusKey } from "@/lib/stats/types";
 
 const STATUS_LABELS: Record<SkinStatusKey, string> = {
@@ -20,9 +22,10 @@ const STATUS_LABELS: Record<SkinStatusKey, string> = {
 
 type Props = {
   stats: AdvancedStatsPayload;
+  delais: DelaisKpiSnapshot;
 };
 
-export function StatsDashboard({ stats }: Props) {
+export function StatsDashboard({ stats, delais }: Props) {
   const updated = new Date(stats.generatedAt).toLocaleString("fr-FR", {
     dateStyle: "short",
     timeStyle: "short",
@@ -109,6 +112,35 @@ export function StatsDashboard({ stats }: Props) {
       <p className="mb-6 text-xs font-medium text-drip-ink/50">
         Données live Supabase · MAJ {updated}
       </p>
+
+      <div className="mb-6 grid gap-3 sm:grid-cols-2">
+        <Link
+          href="/delais"
+          className="drip-card flex flex-col gap-1 border-drip-violet/30 p-4 transition hover:border-drip-violet"
+        >
+          <span className="text-[10px] font-bold uppercase tracking-widest text-drip-muted">
+            % sous 48 h (7 j)
+          </span>
+          <span className="font-mono text-2xl font-semibold text-drip-violet">
+            {formatPercent(delais.pctUnder48_7d)}
+          </span>
+        </Link>
+        <Link
+          href="/delais"
+          className="drip-card flex flex-col gap-1 border-drip-peach/40 p-4 transition hover:border-drip-peach"
+        >
+          <span className="text-[10px] font-bold uppercase tracking-widest text-drip-muted">
+            Commandes en retard
+          </span>
+          <span
+            className={`font-mono text-2xl font-semibold ${
+              delais.overdueCount > 0 ? "text-red-600" : "text-drip-ink"
+            }`}
+          >
+            {delais.overdueCount}
+          </span>
+        </Link>
+      </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <KpiTile

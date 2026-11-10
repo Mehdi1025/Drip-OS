@@ -4,9 +4,11 @@ import { buildSkinInsertRows } from "@/lib/shopify/create-order-skins";
 import { handleShopifyOrderCancelled } from "@/lib/shopify/order-cancel-update";
 import { createSupabaseAdmin } from "@/lib/supabase/admin";
 import {
-  resolveCustomerName,
-  resolveShippingMethod,
-} from "@/lib/shopify/order-helpers";
+  handleFulfillmentEventCreate,
+  handleFulfillmentUpsert,
+  handleRefundMaybeReturn,
+} from "@/lib/shopify/fulfillment-webhooks";
+import { upsertOrderFromShopifyWebhook } from "@/lib/shopify/upsert-order-from-webhook";
 import {
   extractShopifyOrderIdFromWebhookBody,
 } from "@/lib/shopify/parse-webhook-ids";
@@ -17,10 +19,18 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const TOPIC_HEADER = "x-shopify-topic";
-const SUPPORTED_TOPICS = new Set([
+const ORDER_TOPICS = new Set([
   "orders/create",
   "orders/cancelled",
   "orders/updated",
+]);
+
+const FULFILLMENT_TOPICS = new Set([
+  "fulfillments/create",
+  "fulfillments/update",
+  "fulfillment_events/create",
+  "refunds/create",
+  "returns/request",
 ]);
 
 function jsonError(message: string, status: number) {
@@ -64,34 +74,6 @@ function orderIsCancelled(order: ShopifyOrderWebhookPayload): boolean {
   return Boolean(raw.cancelled_at);
 }
 
-async function resolveOrderUuid(
-  idShopify: string,
-  shopifyOrder: ShopifyOrderWebhookPayload
-): Promise<string> {
-  const supabase = createSupabaseAdmin();
-  const { data: existing } = await supabase
-    .from("orders")
-    .select("id")
-    .eq("id_shopify", idShopify)
-    .maybeSingle();
-
-  if (existing?.id) return existing.id;
-
-  const { data: inserted, error } = await supabase
-    .from("orders")
-    .insert({
-      id_shopify: idShopify,
-      customer_name: resolveCustomerName(shopifyOrder),
-      shipping_method: resolveShippingMethod(shopifyOrder),
-    })
-    .select("id")
-    .single();
-
-  if (error || !inserted) {
-    throw new Error("Failed to insert order");
-  }
-  return inserted.id;
-}
 
 async function handleOrderCreate(
   rawBody: string,
@@ -99,52 +81,12 @@ async function handleOrderCreate(
   idShopify: string
 ) {
   const supabase = createSupabaseAdmin();
-  const customerName = resolveCustomerName(shopifyOrder);
-  const shippingMethod = resolveShippingMethod(shopifyOrder);
-
-  const { data: existingOrder, error: existingError } = await supabase
-    .from("orders")
-    .select("id")
-    .eq("id_shopify", idShopify)
-    .maybeSingle();
-
-  if (existingError) {
-    console.error("[shopify/webhook] orders lookup failed", existingError);
-    return jsonError("Database error while checking order", 500);
-  }
-
   let orderId: string;
-
-  if (existingOrder) {
-    orderId = existingOrder.id;
-  } else {
-    const { data: insertedOrder, error: insertOrderError } = await supabase
-      .from("orders")
-      .insert({
-        id_shopify: idShopify,
-        customer_name: customerName,
-        shipping_method: shippingMethod,
-      })
-      .select("id")
-      .single();
-
-    if (insertOrderError || !insertedOrder) {
-      if (insertOrderError?.code === "23505") {
-        const { data: racedOrder } = await supabase
-          .from("orders")
-          .select("id")
-          .eq("id_shopify", idShopify)
-          .single();
-        if (!racedOrder) {
-          return jsonError("Failed to resolve duplicate order", 500);
-        }
-        orderId = racedOrder.id;
-      } else {
-        return jsonError("Failed to insert order", 500);
-      }
-    } else {
-      orderId = insertedOrder.id;
-    }
+  try {
+    orderId = await upsertOrderFromShopifyWebhook(shopifyOrder, idShopify);
+  } catch (e) {
+    console.error("[shopify/webhook] order upsert", e);
+    return jsonError("Failed to insert order", 500);
   }
 
   const { count: existingSkinCount, error: skinCountError } = await supabase
@@ -200,6 +142,32 @@ async function handleOrderCreate(
   });
 }
 
+async function handleOrderUpdated(
+  shopifyOrder: ShopifyOrderWebhookPayload,
+  idShopify: string
+) {
+  const orderUuid = await upsertOrderFromShopifyWebhook(shopifyOrder, idShopify);
+  if (orderIsCancelled(shopifyOrder)) {
+    const supabase = createSupabaseAdmin();
+    await supabase
+      .from("orders")
+      .update({
+        cancelled_at:
+          shopifyOrder.cancelled_at ?? new Date().toISOString(),
+      })
+      .eq("id", orderUuid);
+    const result = await handleShopifyOrderCancelled(orderUuid, idShopify);
+    return NextResponse.json({
+      ok: true,
+      topic: "orders/updated",
+      cancelled: true,
+      order_id: orderUuid,
+      ...result,
+    });
+  }
+  return NextResponse.json({ ok: true, topic: "orders/updated", order_id: orderUuid });
+}
+
 export async function POST(request: NextRequest) {
   try {
     const webhookSecret = process.env.SHOPIFY_WEBHOOK_SECRET;
@@ -208,7 +176,8 @@ export async function POST(request: NextRequest) {
     }
 
     const topic = request.headers.get(TOPIC_HEADER) ?? "orders/create";
-    if (!SUPPORTED_TOPICS.has(topic)) {
+    const supported = ORDER_TOPICS.has(topic) || FULFILLMENT_TOPICS.has(topic);
+    if (!supported) {
       return jsonError(`Unsupported webhook topic: ${topic}`, 400);
     }
 
@@ -222,6 +191,25 @@ export async function POST(request: NextRequest) {
       return jsonError("Invalid HMAC signature", 401);
     }
 
+    if (FULFILLMENT_TOPICS.has(topic)) {
+      if (topic === "fulfillment_events/create") {
+        const result = await handleFulfillmentEventCreate(rawBody);
+        if (!result.ok) {
+          return jsonError(result.error ?? "Fulfillment event failed", 500);
+        }
+        return NextResponse.json({ ok: true, topic });
+      }
+      if (topic === "refunds/create" || topic === "returns/request") {
+        await handleRefundMaybeReturn(rawBody);
+        return NextResponse.json({ ok: true, topic });
+      }
+      const result = await handleFulfillmentUpsert(rawBody);
+      if (!result.ok) {
+        return jsonError(result.error ?? "Fulfillment failed", 500);
+      }
+      return NextResponse.json({ ok: true, topic });
+    }
+
     const { order: shopifyOrder, orderId: idShopify } =
       parseOrderPayload(rawBody);
 
@@ -229,14 +217,18 @@ export async function POST(request: NextRequest) {
       return handleOrderCreate(rawBody, shopifyOrder, idShopify);
     }
 
-    const shouldCancel =
-      topic === "orders/cancelled" || orderIsCancelled(shopifyOrder);
-
-    if (!shouldCancel) {
-      return NextResponse.json({ ok: true, ignored: true, topic });
+    if (topic === "orders/updated") {
+      return handleOrderUpdated(shopifyOrder, idShopify);
     }
 
-    const orderUuid = await resolveOrderUuid(idShopify, shopifyOrder);
+    const orderUuid = await upsertOrderFromShopifyWebhook(shopifyOrder, idShopify);
+    await createSupabaseAdmin()
+      .from("orders")
+      .update({
+        cancelled_at:
+          shopifyOrder.cancelled_at ?? new Date().toISOString(),
+      })
+      .eq("id", orderUuid);
     const result = await handleShopifyOrderCancelled(orderUuid, idShopify);
 
     return NextResponse.json({

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { fetchDelaisKpiSnapshot } from "@/app/delais/actions";
 import { fetchAdvancedStats } from "@/app/stats/actions";
 import { StatsDashboard } from "@/components/stats/StatsDashboard";
 import { unstable_noStore as noStore } from "next/cache";
@@ -14,6 +15,9 @@ export const revalidate = 0;
 
 export default async function StatsPage() {
   noStore();
-  const stats = await fetchAdvancedStats();
-  return <StatsDashboard stats={stats} />;
+  const [stats, delais] = await Promise.all([
+    fetchAdvancedStats(),
+    fetchDelaisKpiSnapshot(),
+  ]);
+  return <StatsDashboard stats={stats} delais={delais} />;
 }

@@ -1,6 +1,6 @@
 type Props = {
   label: string;
-  value: number;
+  value: number | string;
   variant?: "default" | "volt" | "danger" | "success";
 };
 

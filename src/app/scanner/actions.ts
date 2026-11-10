@@ -11,6 +11,7 @@ import {
 import { isShopifyAdminConfigured } from "@/lib/shopify/admin-config";
 import { fulfillSkinUnitOnShopify } from "@/lib/shopify/fulfill-skin";
 import { normalizeShopifyNumericId } from "@/lib/shopify/numeric-id";
+import { refreshOrderShippedAt } from "@/lib/delais/shipped-at";
 import { createSupabaseAdmin } from "@/lib/supabase/admin";
 
 const SHIPPABLE_STATUS = "cut" as const;
@@ -50,7 +51,12 @@ function mapSkinRow(
 }
 
 export type ShipSkinResult =
-  | { ok: true; shopifySynced?: boolean; shopifyWarning?: string }
+  | {
+      ok: true;
+      shopifySynced?: boolean;
+      shopifyWarning?: string;
+      orderId?: string;
+    }
   | { ok: false; error: string; trackCode?: string };
 
 export type ShipBatchResult =
@@ -278,11 +284,13 @@ export async function markSkinsShipped(
     let shipped = 0;
     const failed: { skinId: string; trackCode: string; error: string }[] = [];
     const shopifyWarnings: string[] = [];
+    const orderIds = new Set<string>();
 
     for (const skinId of unique) {
       const result = await markSkinShippedInner(skinId);
       if (result.ok) {
         shipped += 1;
+        if (result.orderId) orderIds.add(result.orderId);
         if (result.shopifyWarning) {
           shopifyWarnings.push(result.shopifyWarning);
         }
@@ -293,6 +301,10 @@ export async function markSkinsShipped(
           error: result.error,
         });
       }
+    }
+
+    for (const orderId of Array.from(orderIds)) {
+      await refreshOrderShippedAt(orderId);
     }
 
     if (shipped === 0) {
@@ -331,7 +343,9 @@ async function markSkinShippedInner(skinId: string): Promise<ShipSkinResult> {
       status,
       track_code,
       shopify_line_item_id,
+      order_id,
       orders (
+        id,
         id_shopify,
         shipping_method
       )
@@ -400,10 +414,13 @@ async function markSkinShippedInner(skinId: string): Promise<ShipSkinResult> {
     };
   }
 
+  const orderId = existing.order_id;
+
   if (!isShopifyAdminConfigured()) {
     return {
       ok: true,
       shopifySynced: false,
+      orderId,
       shopifyWarning:
         "Expédié dans Drip OS — Shopify non configuré (SHOPIFY_STORE_DOMAIN + SHOPIFY_ADMIN_ACCESS_TOKEN sur Vercel).",
     };
@@ -418,6 +435,7 @@ async function markSkinShippedInner(skinId: string): Promise<ShipSkinResult> {
     return {
       ok: true,
       shopifySynced: false,
+      orderId,
       shopifyWarning:
         "Expédié dans Drip OS — pas de lien Shopify sur ce skin (commande avant migration 005 ou line item manquant).",
     };
@@ -434,9 +452,10 @@ async function markSkinShippedInner(skinId: string): Promise<ShipSkinResult> {
     return {
       ok: true,
       shopifySynced: false,
+      orderId,
       shopifyWarning: `Expédié dans Drip OS — Shopify: ${shopifyResult.error}`,
     };
   }
 
-  return { ok: true, shopifySynced: true };
+  return { ok: true, shopifySynced: true, orderId };
 }

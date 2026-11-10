@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { Loader2, Zap } from "lucide-react";
 import {
   generateLotFromPending,
@@ -21,10 +21,11 @@ export function GenerateLotButton({
   onError,
 }: Props) {
   const [isPending, startTransition] = useTransition();
+  const [prioritizeUrgent, setPrioritizeUrgent] = useState(true);
 
   function handleClick() {
     startTransition(async () => {
-      const result = await generateLotFromPending();
+      const result = await generateLotFromPending(prioritizeUrgent);
       if (result.ok) {
         onSuccess?.(result);
       } else {
@@ -36,11 +37,21 @@ export function GenerateLotButton({
   const isDisabled = disabled || pendingCount === 0 || isPending;
 
   return (
-    <button
+    <div className="w-full max-w-xl space-y-3">
+      <label className="flex items-center gap-2 text-xs text-drip-muted">
+        <input
+          type="checkbox"
+          checked={prioritizeUrgent}
+          onChange={(e) => setPrioritizeUrgent(e.target.checked)}
+          disabled={isPending}
+        />
+        Mettre les commandes urgentes / en retard en premier
+      </label>
+      <button
       type="button"
       onClick={handleClick}
       disabled={isDisabled}
-      className="drip-btn-volt drip-touch group flex w-full max-w-xl items-center justify-center gap-3 px-6 py-4 text-base sm:px-8 sm:py-5 sm:text-lg"
+      className="drip-btn-volt drip-touch group flex w-full items-center justify-center gap-3 px-6 py-4 text-base sm:px-8 sm:py-5 sm:text-lg"
     >
       {isPending ? (
         <Loader2 className="h-6 w-6 animate-spin" strokeWidth={3} />
@@ -49,5 +60,6 @@ export function GenerateLotButton({
       )}
       {isPending ? "Génération…" : "Générer un Lot"}
     </button>
+    </div>
   );
 }

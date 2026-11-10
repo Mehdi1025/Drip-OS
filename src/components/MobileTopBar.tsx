@@ -13,6 +13,7 @@ const TITLES: Record<string, string> = {
   "/inventory": "Stock",
   "/stock": "Stock",
   "/pilotage": "Statistiques",
+  "/delais": "Délais",
 };
 
 function titleForPath(pathname: string): string {

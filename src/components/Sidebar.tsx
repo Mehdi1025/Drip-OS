@@ -8,7 +8,9 @@ import {
   ScanLine,
   Package,
   BarChart3,
+  Clock,
 } from "lucide-react";
+import { DelaisNavBadge } from "@/components/navigation/DelaisNavBadge";
 import { BrandMark } from "@/components/BrandMark";
 
 const productionNav = [
@@ -45,11 +47,19 @@ const pilotageNav = [
     description: "KPIs · graphiques",
     icon: BarChart3,
   },
+  {
+    href: "/delais",
+    label: "Délais",
+    description: "SLA 48 h · SAV",
+    icon: Clock,
+    badge: true as const,
+  },
 ] as const;
 
 function isNavActive(pathname: string, href: string): boolean {
   if (pathname === href || pathname.startsWith(`${href}/`)) return true;
   if (href === "/stats" && pathname.startsWith("/pilotage")) return true;
+  if (href === "/delais" && pathname.startsWith("/delais")) return true;
   if (href === "/inventory" && pathname.startsWith("/stock")) return true;
   return false;
 }
@@ -111,10 +121,11 @@ function NavLink({
     label: string;
     description: string;
     icon: typeof LayoutGrid;
+    badge?: boolean;
   };
   active: boolean;
 }) {
-  const { href, label, description, icon: Icon } = item;
+  const { href, label, description, icon: Icon, badge } = item;
 
   return (
     <Link
@@ -134,8 +145,11 @@ function NavLink({
       >
         <Icon className="h-[18px] w-[18px]" strokeWidth={2} />
       </span>
-      <span className="flex min-w-0 flex-col leading-tight">
-        <span className="truncate text-sm font-semibold">{label}</span>
+      <span className="flex min-w-0 flex-1 flex-col leading-tight">
+        <span className="flex items-center gap-2 truncate text-sm font-semibold">
+          {label}
+          {badge ? <DelaisNavBadge /> : null}
+        </span>
         <span className="truncate text-[11px] text-drip-gray-light">
           {description}
         </span>
