@@ -11,49 +11,45 @@ export function SheetPackCard({ sheetNumber, skins }: Props) {
   const bySlot = SLOTS.map((slot) => skins[slot - 1] ?? null);
 
   return (
-    <article className="max-w-full border-4 border-[#0a0a0a] bg-[#f2ede4] shadow-brutal-sm sm:shadow-brutal">
-      <header className="flex items-center justify-between border-b-4 border-[#0a0a0a] bg-[#ccff00] px-4 py-2">
-        <span className="text-xs font-black uppercase tracking-widest text-[#0a0a0a]">
+    <article className="drip-card max-w-full overflow-hidden">
+      <header className="flex items-center justify-between border-b border-drip-border bg-drip-volt/[0.08] px-4 py-3">
+        <span className="text-[11px] font-medium uppercase tracking-widest text-drip-muted">
           Feuille
         </span>
-        <span className="font-mono text-lg font-black text-[#0a0a0a]">
+        <span className="font-mono text-lg font-semibold text-drip-volt">
           F{sheetNumber}
         </span>
       </header>
 
-      <div className="grid grid-cols-2 gap-0">
+      <div className="grid grid-cols-2 gap-px bg-drip-border">
         {bySlot.map((skin, index) => (
           <div
             key={slotKey(sheetNumber, index)}
-            className="min-h-[120px] border-b-4 border-r-4 border-[#0a0a0a] p-3 last:border-b-0 odd:border-r-4 [&:nth-child(2)]:border-r-0 [&:nth-child(4)]:border-r-0 [&:nth-child(3)]:border-b-0 [&:nth-child(4)]:border-b-0"
+            className="min-h-[124px] bg-drip-elevated/90 p-3"
           >
             <div className="mb-2 flex items-center justify-between">
-              <span className="rounded-sm border-2 border-[#0a0a0a] bg-white px-1.5 py-0.5 font-mono text-[10px] font-bold">
-                S{index + 1}
-              </span>
+              <span className="drip-chip py-0.5 text-[10px]">S{index + 1}</span>
               {skin ? (
-                <span className="h-2 w-2 rounded-full bg-[#ccff00] ring-2 ring-[#0a0a0a]" />
+                <span className="h-2 w-2 rounded-full bg-drip-volt shadow-[0_0_8px_#d8ff52]" />
               ) : (
-                <span className="h-2 w-2 rounded-full border-2 border-[#0a0a0a] bg-transparent" />
+                <span className="h-2 w-2 rounded-full border border-drip-border" />
               )}
             </div>
 
             {skin ? (
               <>
-                <p className="line-clamp-2 text-sm font-bold leading-tight text-[#0a0a0a]">
+                <p className="line-clamp-2 text-sm font-medium leading-tight">
                   {skin.design_name}
                 </p>
-                <p className="mt-1 truncate font-mono text-[10px] text-[#0a0a0a]/70">
+                <p className="mt-1 truncate font-mono text-[10px] text-drip-muted">
                   {skin.track_code}
                 </p>
-                <p className="mt-1 truncate text-[10px] font-medium uppercase text-[#0a0a0a]/60">
+                <p className="mt-1 truncate text-[10px] text-drip-muted">
                   {skin.customer_name}
                 </p>
               </>
             ) : (
-              <p className="text-xs font-bold uppercase tracking-wide text-[#0a0a0a]/35">
-                Vide
-              </p>
+              <p className="text-xs text-drip-muted/70">Emplacement vide</p>
             )}
           </div>
         ))}

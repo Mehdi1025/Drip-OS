@@ -24,29 +24,27 @@ export function InventoryCard({ item, onQuantityChange }: Props) {
 
   return (
     <article
-      className={`flex flex-col border-4 shadow-[8px_8px_0_0_#0a0a0a] ${
-        ok
-          ? "border-[#0a0a0a] bg-[#f2ede4]"
-          : "border-red-600 bg-red-50"
+      className={`drip-card flex flex-col overflow-hidden ${
+        ok ? "" : "border-red-500/30"
       }`}
     >
-      <header className="flex items-start justify-between gap-3 border-b-4 border-inherit px-4 py-3">
+      <header className="flex items-start justify-between gap-3 border-b border-drip-border px-4 py-3">
         <div>
-          <h3 className="text-lg font-black uppercase leading-tight">
+          <h3 className="font-display text-lg font-medium leading-tight">
             {item.item_name}
           </h3>
-          <p className="mt-1 font-mono text-xs text-[#0a0a0a]/60">
+          <p className="mt-1 font-mono text-xs text-drip-muted">
             {formatStockQuantity(item.usage_per_sheet)} {item.unit} / feuille
             {item.usage_per_sheet === 0 ? " (ou / cmd)" : ""}
           </p>
         </div>
 
         {ok ? (
-          <span className="shrink-0 border-2 border-[#0a0a0a] bg-emerald-400 px-2 py-1 text-[10px] font-black uppercase">
+          <span className="shrink-0 rounded-full border border-emerald-500/30 bg-emerald-500/15 px-2.5 py-1 text-[10px] font-medium text-emerald-300">
             Stock OK
           </span>
         ) : (
-          <span className="flex shrink-0 items-center gap-1 border-2 border-red-700 bg-red-600 px-2 py-1 text-[10px] font-black uppercase text-white">
+          <span className="flex shrink-0 items-center gap-1 rounded-full border border-red-500/35 bg-red-500/15 px-2.5 py-1 text-[10px] font-medium text-red-200">
             <AlertTriangle className="h-3.5 w-3.5 animate-pulse" />
             Alerte
           </span>
@@ -54,28 +52,28 @@ export function InventoryCard({ item, onQuantityChange }: Props) {
       </header>
 
       <div className="flex-1 px-4 py-4">
-        <p className="text-[10px] font-black uppercase tracking-widest text-[#0a0a0a]/50">
+        <p className="text-[10px] font-medium uppercase tracking-widest text-drip-muted">
           Quantité restante
         </p>
-        <p className="font-mono text-4xl font-black leading-none">
+        <p className="font-mono text-4xl font-semibold leading-none tabular-nums">
           {formatStockQuantity(item.current_quantity)}
-          <span className="ml-2 text-base font-bold uppercase">
+          <span className="ml-2 text-base font-medium text-drip-muted">
             {item.unit}
           </span>
         </p>
-        <p className="mt-1 text-xs font-bold text-[#0a0a0a]/45">
+        <p className="mt-1 text-xs text-drip-muted">
           Seuil : {formatStockQuantity(item.alert_threshold)} {item.unit}
         </p>
 
         <div className="mt-4">
-          <div className="mb-1 flex justify-between text-[10px] font-black uppercase">
+          <div className="mb-1 flex justify-between text-[10px] text-drip-muted">
             <span>Niveau</span>
             <span>{percent}%</span>
           </div>
-          <div className="h-4 border-4 border-[#0a0a0a] bg-white p-0.5">
+          <div className="h-2 overflow-hidden rounded-full bg-drip-border">
             <div
               className={`h-full transition-all duration-300 ${
-                ok ? "bg-[#ccff00]" : "bg-red-500"
+                ok ? "bg-drip-volt" : "bg-red-500"
               }`}
               style={{ width: `${percent}%` }}
             />
@@ -83,21 +81,21 @@ export function InventoryCard({ item, onQuantityChange }: Props) {
         </div>
       </div>
 
-      <footer className="space-y-3 border-t-4 border-inherit p-4">
+      <footer className="space-y-3 border-t border-drip-border p-4">
         {!ok && supplierHref && (
           <a
             href={supplierHref}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex min-h-[52px] items-center justify-center gap-2 border-4 border-red-800 bg-red-600 px-4 py-3 text-center text-sm font-black uppercase text-white shadow-[5px_5px_0_0_#0a0a0a] active:translate-x-0.5 active:translate-y-0.5"
+            className="flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-red-500/35 bg-red-500/15 px-4 py-3 text-center text-sm font-medium text-red-100 transition hover:bg-red-500/25"
           >
-            <ExternalLink className="h-5 w-5 shrink-0" strokeWidth={3} />
+            <ExternalLink className="h-5 w-5 shrink-0" strokeWidth={2} />
             Commander chez le fournisseur
           </a>
         )}
 
         {!ok && !supplierHref && (
-          <p className="text-center text-xs font-bold text-red-800">
+          <p className="text-center text-xs text-red-300">
             URL fournisseur manquante
           </p>
         )}

@@ -60,24 +60,24 @@ export function PwaInstallBanner() {
 
   return (
     <div
-      className="fixed bottom-[calc(var(--drip-tab-bar-h)+env(safe-area-inset-bottom,0px))] left-0 right-0 z-[45] border-t-4 border-drip-ink bg-drip-volt px-4 py-3 shadow-brutal md:bottom-4 md:left-auto md:right-4 md:max-w-sm md:border-4"
+      className="drip-glass-nav fixed bottom-[calc(var(--drip-tab-bar-h)+env(safe-area-inset-bottom,0px)+0.5rem)] left-4 right-4 z-[45] rounded-2xl px-4 py-3 md:bottom-6 md:left-auto md:right-6 md:max-w-sm"
       role="region"
       aria-label="Installer l'application"
     >
       <div className="flex items-start gap-3">
-        <Download className="mt-0.5 h-5 w-5 shrink-0" strokeWidth={2.5} />
-        <div className="min-w-0 flex-1 text-xs font-bold leading-snug">
+        <Download className="mt-0.5 h-5 w-5 shrink-0 text-drip-volt" strokeWidth={2} />
+        <div className="min-w-0 flex-1 text-xs leading-snug">
           {isIosHint && !deferred ? (
             <>
-              <p className="font-black uppercase">Installer Drip OS</p>
-              <p className="mt-1 font-medium normal-case text-drip-ink/80">
+              <p className="font-medium">Installer Drip OS</p>
+              <p className="mt-1 text-drip-muted">
                 Safari → Partager → Sur l&apos;écran d&apos;accueil
               </p>
             </>
           ) : (
             <>
-              <p className="font-black uppercase">App Drip OS</p>
-              <p className="mt-1 font-medium normal-case text-drip-ink/80">
+              <p className="font-medium">App Drip OS</p>
+              <p className="mt-1 text-drip-muted">
                 Ajoute le dashboard à ton écran d&apos;accueil.
               </p>
             </>
@@ -86,17 +86,17 @@ export function PwaInstallBanner() {
         <button
           type="button"
           onClick={dismiss}
-          className="shrink-0 border-2 border-drip-ink bg-drip-paper p-1"
+          className="shrink-0 rounded-lg border border-drip-border p-1.5 transition hover:bg-white/5"
           aria-label="Fermer"
         >
-          <X className="h-4 w-4" strokeWidth={3} />
+          <X className="h-4 w-4" strokeWidth={2} />
         </button>
       </div>
       {deferred && (
         <button
           type="button"
           onClick={() => void install()}
-          className="drip-touch mt-3 w-full border-4 border-drip-ink bg-drip-paper py-2.5 text-xs font-black uppercase"
+          className="drip-btn-volt drip-touch mt-3 w-full py-2.5 text-xs"
         >
           Installer
         </button>

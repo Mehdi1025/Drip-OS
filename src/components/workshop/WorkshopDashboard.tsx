@@ -120,7 +120,7 @@ export function WorkshopDashboard({ initialRecentLots = [] }: Props) {
           onSubmit={handleSubmit}
           className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-stretch"
         >
-          <label className="flex flex-1 items-center gap-3 border-4 border-drip-ink bg-drip-paper px-4">
+          <label className="drip-card flex flex-1 items-center gap-3 rounded-xl px-4">
             <ScanLine className="h-7 w-7 shrink-0" strokeWidth={2.5} />
             <input
               ref={inputRef}
@@ -134,13 +134,13 @@ export function WorkshopDashboard({ initialRecentLots = [] }: Props) {
               onBlur={() => {
                 if (lotInput.trim()) loadLot(lotInput);
               }}
-              className="min-h-[56px] w-full min-w-0 bg-transparent text-base font-bold uppercase outline-none placeholder:font-medium placeholder:normal-case placeholder:text-drip-ink/40 sm:text-lg"
+              className="min-h-[56px] w-full min-w-0 bg-transparent font-mono text-base outline-none placeholder:text-drip-muted sm:text-lg"
             />
           </label>
           <button
             type="submit"
             disabled={isFetching}
-            className="drip-btn-volt flex min-h-[56px] items-center justify-center gap-2 px-8 text-lg shadow-brutal disabled:opacity-50"
+            className="drip-btn-volt flex min-h-[56px] items-center justify-center gap-2 px-8 text-lg disabled:opacity-50"
           >
             <Search className="h-6 w-6" strokeWidth={3} />
             {isFetching ? "Chargement…" : "Charger"}
@@ -148,14 +148,14 @@ export function WorkshopDashboard({ initialRecentLots = [] }: Props) {
         </form>
 
         {error && (
-          <p className="mt-4 border-4 border-drip-ink bg-red-100 px-4 py-3 text-sm font-bold">
+          <p className="drip-flash-err mt-4">
             {error}
           </p>
         )}
 
         {initialRecentLots.length > 0 && (
           <div className="mt-6">
-            <p className="text-xs font-black uppercase tracking-widest text-drip-ink/50">
+            <p className="text-xs font-medium uppercase tracking-widest text-drip-muted">
               Derniers lots
             </p>
             <ul className="drip-scroll-x mt-2 sm:flex-wrap">
@@ -171,10 +171,10 @@ export function WorkshopDashboard({ initialRecentLots = [] }: Props) {
                       type="button"
                       disabled={isFetching}
                       onClick={() => loadLot(lot.lotId)}
-                      className={`drip-touch border-4 px-3 py-2 font-mono text-xs font-bold transition-transform active:translate-x-0.5 active:translate-y-0.5 sm:text-sm ${
+                      className={`drip-touch rounded-lg border px-3 py-2 font-mono text-xs transition sm:text-sm ${
                         active
-                          ? "border-drip-ink bg-drip-volt shadow-brutal-sm"
-                          : "border-drip-ink bg-drip-surface hover:bg-drip-volt/40"
+                          ? "border-drip-volt/40 bg-drip-volt/15 text-drip-volt"
+                          : "border-drip-border bg-drip-surface hover:border-drip-border-strong"
                       }`}
                     >
                       {label}
@@ -197,7 +197,7 @@ export function WorkshopDashboard({ initialRecentLots = [] }: Props) {
       <main className="space-y-8 px-4 py-6 sm:space-y-10 sm:px-8 sm:py-8">
         {!lotData && !error && (
           <div className="drip-empty">
-            <p className="text-lg font-black uppercase">
+            <p className="font-display text-lg font-medium">
               Scanne un numéro de lot pour commencer
             </p>
           </div>
@@ -205,7 +205,7 @@ export function WorkshopDashboard({ initialRecentLots = [] }: Props) {
 
         {lotData?.sheets.length === 0 && (
           <div className="drip-card p-8 text-center">
-            <p className="font-black uppercase">Aucune feuille active sur ce lot</p>
+            <p className="font-medium">Aucune feuille active sur ce lot</p>
           </div>
         )}
 

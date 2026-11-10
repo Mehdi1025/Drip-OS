@@ -13,7 +13,7 @@ export function DualTrendChart({ title, data }: Props) {
   return (
     <article className="drip-card p-5">
       <div className="flex flex-wrap items-end justify-between gap-2">
-        <h2 className="text-xs font-black uppercase tracking-widest text-drip-ink/55">
+        <h2 className="text-xs font-medium tracking-widest text-drip-muted">
           {title}
         </h2>
         <div className="flex gap-3 text-[10px] font-bold uppercase">

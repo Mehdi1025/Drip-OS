@@ -24,7 +24,7 @@ export function BrutalBarChart({ title, bars, maxValue }: Props) {
 
   return (
     <article className="drip-card p-5">
-      <h2 className="text-xs font-black uppercase tracking-widest text-drip-ink/55">
+      <h2 className="text-xs font-medium tracking-widest text-drip-muted">
         {title}
       </h2>
       <ul className="mt-4 space-y-3">

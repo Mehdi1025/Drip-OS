@@ -27,42 +27,45 @@ export function ScrapModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-[#0a0a0a]/70 p-4 sm:items-center"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 backdrop-blur-sm sm:items-center"
       role="dialog"
       aria-modal="true"
       aria-labelledby="scrap-modal-title"
     >
-      <div className="w-full max-w-lg border-4 border-[#0a0a0a] bg-[#f2ede4] shadow-[10px_10px_0_0_#0a0a0a]">
-        <header className="flex items-start justify-between border-b-4 border-[#0a0a0a] bg-white px-5 py-4">
+      <div className="drip-glass-nav w-full max-w-lg overflow-hidden rounded-2xl">
+        <header className="flex items-start justify-between border-b border-drip-border px-5 py-4">
           <div>
-            <p className="text-xs font-black uppercase tracking-widest text-red-600">
+            <p className="text-xs font-medium uppercase tracking-widest text-red-400">
               Rebut
             </p>
-            <h2 id="scrap-modal-title" className="mt-1 text-xl font-black uppercase">
+            <h2
+              id="scrap-modal-title"
+              className="font-display mt-1 text-xl font-medium"
+            >
               Cause du rebut
             </h2>
-            <p className="mt-1 font-mono text-xs text-[#0a0a0a]/70">{trackCode}</p>
-            <p className="text-sm font-bold">{designName}</p>
+            <p className="mt-1 font-mono text-xs text-drip-muted">{trackCode}</p>
+            <p className="text-sm text-drip-ink/90">{designName}</p>
           </div>
           <button
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="border-4 border-[#0a0a0a] bg-white p-2 shadow-[3px_3px_0_0_#0a0a0a] active:translate-x-0.5 active:translate-y-0.5"
+            className="rounded-lg border border-drip-border bg-drip-elevated p-2 transition hover:bg-white/5"
             aria-label="Fermer"
           >
-            <X className="h-6 w-6" strokeWidth={3} />
+            <X className="h-5 w-5" strokeWidth={2} />
           </button>
         </header>
 
-        <div className="space-y-3 p-5">
+        <div className="space-y-2 p-5">
           {SCRAP_REASONS.map(({ value, label }) => (
             <button
               key={value}
               type="button"
               disabled={loading}
               onClick={() => onConfirm(value)}
-              className="w-full border-4 border-[#0a0a0a] bg-red-500 py-5 text-lg font-black uppercase tracking-wide text-white shadow-[6px_6px_0_0_#0a0a0a] transition-transform active:translate-x-1 active:translate-y-1 active:shadow-[4px_4px_0_0_#0a0a0a] disabled:opacity-50"
+              className="w-full rounded-xl border border-red-500/30 bg-red-500/15 py-4 text-base font-medium text-red-100 transition hover:bg-red-500/25 disabled:opacity-50"
             >
               {label}
             </button>

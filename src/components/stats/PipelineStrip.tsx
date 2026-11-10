@@ -14,7 +14,7 @@ export function PipelineStrip({ steps }: Props) {
   return (
     <article className="drip-card overflow-hidden p-0">
       <div className="border-b-4 border-drip-ink bg-drip-volt px-5 py-3">
-        <h2 className="text-xs font-black uppercase tracking-widest">
+        <h2 className="text-xs font-medium tracking-widest">
           Pipeline production
         </h2>
       </div>
@@ -41,7 +41,7 @@ export function PipelineStrip({ steps }: Props) {
       <ul className="grid grid-cols-2 gap-3 p-4 sm:p-5 lg:grid-cols-5">
         {steps.map((step) => (
           <li key={step.label}>
-            <p className="text-[10px] font-black uppercase tracking-widest text-drip-ink/50">
+            <p className="text-[10px] font-medium tracking-widest text-drip-muted">
               {step.label}
             </p>
             <p className="font-mono text-2xl font-black">{step.value}</p>

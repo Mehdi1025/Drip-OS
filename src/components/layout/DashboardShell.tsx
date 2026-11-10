@@ -10,9 +10,9 @@ type Props = {
 
 export function DashboardShell({ kicker, title, stats, children }: Props) {
   return (
-    <div className="drip-page min-h-full">
+    <div className="drip-page min-h-full animate-fade-up">
       <header className="drip-header">
-        <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-6">
+        <div className="flex flex-col gap-5 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-8">
           <div className="min-w-0">
             <p className="drip-kicker">{kicker}</p>
             <h1 className="drip-title break-words">{title}</h1>
@@ -20,7 +20,7 @@ export function DashboardShell({ kicker, title, stats, children }: Props) {
           {stats ? <StatRow>{stats}</StatRow> : null}
         </div>
       </header>
-      <div className="drip-gutter-x py-6 sm:py-8">{children}</div>
+      <div className="drip-gutter-x py-8 sm:py-10">{children}</div>
     </div>
   );
 }

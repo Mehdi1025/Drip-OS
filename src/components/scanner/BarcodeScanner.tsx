@@ -135,22 +135,22 @@ export function BarcodeScanner({
   if (phase === "blocked" && blockedCopy) {
     return (
       <div
-        className="border-4 border-drip-ink bg-drip-surface shadow-brutal"
+        className="drip-card overflow-hidden"
         data-testid="barcode-scanner-blocked"
       >
-        <div className="flex min-h-[220px] flex-col items-center justify-center gap-3 border-b-4 border-drip-ink bg-drip-ink px-4 py-8 text-center text-drip-paper">
+        <div className="flex min-h-[220px] flex-col items-center justify-center gap-3 border-b border-drip-border bg-drip-elevated px-4 py-8 text-center">
           <CameraOff className="h-12 w-12" strokeWidth={2} aria-hidden />
-          <p className="text-sm font-black uppercase tracking-wide">
+          <p className="text-sm font-medium">
             {blockedCopy.title}
           </p>
-          <p className="max-w-sm text-xs font-medium leading-snug text-drip-paper/80">
+          <p className="max-w-sm text-xs leading-snug text-drip-muted">
             {blockedCopy.detail}
           </p>
         </div>
         <button
           type="button"
           onClick={retry}
-          className="drip-touch flex w-full items-center justify-center gap-2 bg-drip-volt py-4 text-sm font-black uppercase text-drip-ink"
+          className="drip-btn-volt drip-touch flex w-full items-center justify-center gap-2 py-4 text-sm"
         >
           <RefreshCw className="h-5 w-5" strokeWidth={2.5} />
           Réactiver la caméra
@@ -161,7 +161,7 @@ export function BarcodeScanner({
 
   return (
     <div
-      className="relative overflow-hidden border-4 border-[#0a0a0a] bg-black shadow-[6px_6px_0_0_#0a0a0a]"
+      className="relative overflow-hidden rounded-2xl border border-drip-border bg-black shadow-panel"
       data-testid="barcode-scanner-region"
     >
       {phase === "starting" && (

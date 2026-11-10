@@ -13,11 +13,11 @@ export function WorkshopSheetSection({ sheet, busySkinId, onOk, onScrap }: Props
 
   return (
     <section className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-4 border-[#0a0a0a] bg-[#0a0a0a] px-4 py-3 text-[#f2ede4] shadow-[6px_6px_0_0_#ccff00]">
-        <h3 className="text-lg font-black uppercase tracking-wide">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-drip-border bg-drip-elevated px-4 py-3 shadow-panel">
+        <h3 className="font-display text-lg font-medium">
           Feuille F{sheet.sheetIndex}
         </h3>
-        <span className="font-mono text-sm font-bold">
+        <span className="font-mono text-sm text-drip-muted">
           {filled}/4 skins · {sheet.status}
         </span>
       </div>
@@ -30,9 +30,9 @@ export function WorkshopSheetSection({ sheet, busySkinId, onOk, onScrap }: Props
             return (
               <div
                 key={`${sheet.id}-empty-${index}`}
-                className="flex min-h-[200px] items-center justify-center border-4 border-dashed border-[#0a0a0a]/25 bg-white/40"
+                className="flex min-h-[200px] items-center justify-center rounded-2xl border border-dashed border-drip-border bg-drip-surface/40"
               >
-                <span className="text-sm font-black uppercase text-[#0a0a0a]/30">
+                <span className="text-sm text-drip-muted">
                   {slotLabel} — vide
                 </span>
               </div>

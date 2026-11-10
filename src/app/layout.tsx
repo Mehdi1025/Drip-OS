@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { DM_Sans, Syne } from "next/font/google";
 import { MainScrollShell } from "@/components/MainScrollShell";
 import { MobileTabBar } from "@/components/MobileTabBar";
 import { MobileTopBar } from "@/components/MobileTopBar";
@@ -7,7 +7,17 @@ import { PwaInstallBanner } from "@/components/PwaInstallBanner";
 import { Sidebar } from "@/components/Sidebar";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  variable: "--font-dm-sans",
+  display: "swap",
+});
+
+const syne = Syne({
+  subsets: ["latin"],
+  variable: "--font-syne",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Drip OS",
@@ -32,10 +42,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: "cover",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ccff00" },
-    { media: "(prefers-color-scheme: dark)", color: "#ccff00" },
-  ],
+  themeColor: "#060608",
 };
 
 export default function RootLayout({
@@ -44,9 +51,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr">
-      <body className={`${inter.className} overflow-x-hidden`}>
-        <div className="flex min-h-[100dvh]">
+    <html lang="fr" className={`${dmSans.variable} ${syne.variable}`}>
+      <body className="overflow-x-hidden font-sans">
+        <div className="relative z-[1] flex min-h-[100dvh]">
           <Sidebar />
           <div className="flex min-h-[100dvh] min-w-0 flex-1 flex-col">
             <MobileTopBar />

@@ -39,18 +39,16 @@ export function ImpositionDashboard({ initialSkins }: Props) {
       <div className="flex flex-col-reverse gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-8">
         <section className="min-w-0 max-w-full">
           <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <h2 className="text-xs font-black uppercase tracking-widest sm:text-sm">
+            <h2 className="text-sm font-medium text-drip-muted">
               Aperçu par paquets de 4
             </h2>
-            <span className="w-fit border-2 border-drip-ink bg-drip-volt px-2 py-0.5 font-mono text-xs font-bold">
-              4 slots / feuille
-            </span>
+            <span className="drip-chip">4 slots / feuille</span>
           </div>
 
           {skins.length === 0 ? (
             <div className="drip-empty">
-              <p className="text-lg font-black uppercase">Aucun skin pending</p>
-              <p className="mt-2 text-sm font-medium text-drip-ink/60">
+              <p className="font-display text-xl font-medium">Aucun skin pending</p>
+              <p className="mt-2 text-sm text-drip-muted">
                 Les commandes Shopify apparaîtront ici après synchronisation.
               </p>
             </div>
@@ -70,16 +68,16 @@ export function ImpositionDashboard({ initialSkins }: Props) {
         <aside className="space-y-4 lg:sticky lg:top-8 lg:self-start lg:order-none">
           {flash && (
             <div
-              className={`border-4 border-drip-ink px-4 py-3 text-sm font-bold shadow-brutal-sm ${
-                flash.type === "ok" ? "bg-drip-volt" : "bg-drip-surface"
-              }`}
+              className={
+                flash.type === "ok" ? "drip-flash-ok" : "drip-flash-err"
+              }
             >
               {flash.text}
             </div>
           )}
 
           <div className="drip-card p-5">
-            <p className="text-xs font-black uppercase tracking-widest text-drip-ink/50">
+            <p className="text-xs font-medium uppercase tracking-widest text-drip-muted">
               Action
             </p>
             <p className="mt-2 text-sm font-medium leading-snug">
@@ -112,7 +110,7 @@ export function ImpositionDashboard({ initialSkins }: Props) {
             </div>
           </div>
 
-          <ul className="space-y-2 border-4 border-drip-ink bg-drip-volt/25 p-4 text-xs font-bold uppercase tracking-wide text-drip-ink">
+          <ul className="drip-card space-y-2 p-4 text-xs text-drip-muted">
             <li>· Track code → N° cmd · F(n) · S(1-4)</li>
             <li>· Sheets → statut ready</li>
             <li>· Ordre FIFO (created_at)</li>

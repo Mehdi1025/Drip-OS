@@ -19,45 +19,43 @@ export function SkinWorkshopCard({
   onScrap,
 }: Props) {
   return (
-    <article className="flex min-h-[280px] flex-col border-4 border-[#0a0a0a] bg-white shadow-[8px_8px_0_0_#0a0a0a]">
-      <header className="border-b-4 border-[#0a0a0a] bg-[#ccff00] px-4 py-3">
+    <article className="drip-card flex min-h-[280px] flex-col overflow-hidden">
+      <header className="border-b border-drip-border bg-drip-volt/[0.08] px-4 py-3">
         <div className="flex items-center justify-between gap-2">
-          <span className="rounded border-2 border-[#0a0a0a] bg-white px-2 py-0.5 font-mono text-sm font-black">
-            {slotLabel}
+          <span className="drip-chip font-mono text-sm">{slotLabel}</span>
+          <span className="font-mono text-xs text-drip-muted">
+            {skin.track_code}
           </span>
-          <span className="font-mono text-xs font-bold">{skin.track_code}</span>
         </div>
       </header>
 
       <div className="flex flex-1 flex-col px-4 py-4">
-        <p className="text-xl font-black leading-tight text-[#0a0a0a]">
+        <p className="font-display text-xl font-medium leading-tight">
           {skin.design_name}
         </p>
-        <p className="mt-2 text-sm font-bold uppercase tracking-wide text-[#0a0a0a]/50">
-          {skin.customer_name}
-        </p>
-        <p className="mt-auto pt-4 text-xs font-black uppercase text-[#0a0a0a]/40">
+        <p className="mt-2 text-sm text-drip-muted">{skin.customer_name}</p>
+        <p className="mt-auto pt-4 text-[11px] uppercase tracking-widest text-drip-muted">
           {skin.status}
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 border-t-4 border-[#0a0a0a] p-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-2 border-t border-drip-border p-4 sm:grid-cols-2">
         <button
           type="button"
           disabled={disabled}
           onClick={onOk}
-          className="flex min-h-[72px] items-center justify-center gap-2 border-4 border-[#0a0a0a] bg-[#ccff00] px-4 py-4 text-base font-black uppercase shadow-[5px_5px_0_0_#0a0a0a] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[3px_3px_0_0_#0a0a0a] disabled:opacity-45"
+          className="drip-btn-volt flex min-h-[64px] items-center justify-center gap-2 px-4 py-3 text-sm disabled:opacity-45"
         >
-          <Check className="h-7 w-7" strokeWidth={3} />
+          <Check className="h-6 w-6" strokeWidth={2.5} />
           Contrôle OK
         </button>
         <button
           type="button"
           disabled={disabled}
           onClick={onScrap}
-          className="flex min-h-[72px] items-center justify-center gap-2 border-4 border-[#0a0a0a] bg-red-600 px-4 py-4 text-base font-black uppercase text-white shadow-[5px_5px_0_0_#0a0a0a] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[3px_3px_0_0_#0a0a0a] disabled:opacity-45"
+          className="flex min-h-[64px] items-center justify-center gap-2 rounded-xl border border-red-500/35 bg-red-500/15 px-4 py-3 text-sm font-medium text-red-200 transition hover:bg-red-500/25 disabled:opacity-45"
         >
-          <Trash2 className="h-7 w-7" strokeWidth={3} />
+          <Trash2 className="h-6 w-6" strokeWidth={2.5} />
           Rebut
         </button>
       </div>

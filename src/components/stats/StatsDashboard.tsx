@@ -78,7 +78,7 @@ export function StatsDashboard({ stats }: Props) {
           <StatBadge label="Skins total" value={stats.totals.skins} />
           <StatBadge label="Lots" value={stats.totals.lots} />
           <div className="drip-stat min-w-[108px] bg-drip-surface sm:min-w-[120px]">
-            <p className="truncate text-[9px] font-black uppercase tracking-widest text-drip-ink/55 sm:text-[10px]">
+            <p className="truncate text-[9px] font-medium tracking-widest text-drip-muted sm:text-[10px]">
               Taux expédition
             </p>
             <p className="font-mono text-2xl font-black leading-none sm:text-3xl">
@@ -94,7 +94,7 @@ export function StatsDashboard({ stats }: Props) {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="drip-card p-5 lg:col-span-1">
-          <h2 className="text-xs font-black uppercase tracking-widest text-drip-ink/55">
+          <h2 className="text-xs font-medium tracking-widest text-drip-muted">
             KPIs
           </h2>
           <dl className="mt-4 space-y-4">
@@ -149,7 +149,7 @@ export function StatsDashboard({ stats }: Props) {
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <article className="drip-card p-5">
-          <h2 className="text-xs font-black uppercase tracking-widest text-drip-ink/55">
+          <h2 className="text-xs font-medium tracking-widest text-drip-muted">
             Stock consommables
           </h2>
           {stats.inventory.length === 0 ? (
@@ -161,17 +161,19 @@ export function StatsDashboard({ stats }: Props) {
               {stats.inventory.map((item) => (
                 <li
                   key={item.id}
-                  className={`border-4 border-drip-ink px-4 py-3 ${
-                    item.low ? "bg-red-100" : "bg-drip-surface"
+                  className={`rounded-xl border px-4 py-3 ${
+                    item.low
+                      ? "border-red-500/30 bg-red-500/10"
+                      : "border-drip-border bg-drip-surface"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-black uppercase">{item.name}</span>
+                    <span className="font-medium">{item.name}</span>
                     <span className="font-mono text-lg font-black">
                       {item.current} {item.unit}
                     </span>
                   </div>
-                  <p className="mt-1 text-xs font-medium text-drip-ink/55">
+                  <p className="mt-1 text-xs font-medium text-drip-muted">
                     Seuil alerte : {item.threshold} {item.unit}
                     {item.low ? " · ⚠ bas" : ""}
                   </p>
@@ -181,14 +183,14 @@ export function StatsDashboard({ stats }: Props) {
           )}
           <Link
             href="/inventory"
-            className="mt-4 inline-block text-xs font-black uppercase underline"
+            className="mt-4 inline-block text-xs font-medium underline"
           >
             Ouvrir Smart Restock →
           </Link>
         </article>
 
         <article className="drip-card p-5">
-          <h2 className="text-xs font-black uppercase tracking-widest text-drip-ink/55">
+          <h2 className="text-xs font-medium tracking-widest text-drip-muted">
             Derniers lots
           </h2>
           {stats.recentLots.length === 0 ? (
@@ -200,7 +202,7 @@ export function StatsDashboard({ stats }: Props) {
               {stats.recentLots.map((lot) => (
                 <li
                   key={lot.lotId}
-                  className="flex items-center justify-between border-2 border-drip-ink bg-drip-paper px-3 py-2"
+                  className="flex items-center justify-between rounded-lg border border-drip-border bg-drip-elevated/80 px-3 py-2"
                 >
                   <Link
                     href={`/workshop`}
@@ -222,7 +224,7 @@ export function StatsDashboard({ stats }: Props) {
         </article>
       </div>
 
-      <div className="mt-8 flex flex-wrap gap-2 border-4 border-dashed border-drip-ink/30 bg-drip-volt/20 p-4 sm:gap-3">
+      <div className="drip-card mt-8 flex flex-wrap gap-2 p-4 sm:gap-3">
         <QuickLink href="/imposition" label="Imposition" />
         <QuickLink href="/workshop" label="Atelier" />
         <QuickLink href="/scanner" label="Scanner" />
@@ -236,7 +238,7 @@ function QuickLink({ href, label }: { href: string; label: string }) {
   return (
     <Link
       href={href}
-      className="drip-touch border-4 border-drip-ink bg-drip-surface px-3 py-2.5 text-[10px] font-black uppercase shadow-brutal-sm hover:bg-drip-volt sm:px-4 sm:text-xs"
+      className="drip-touch rounded-lg border border-drip-border bg-drip-elevated px-3 py-2.5 text-[10px] font-medium transition hover:border-drip-volt/30 hover:bg-drip-volt/10 sm:px-4 sm:text-xs"
     >
       {label}
     </Link>

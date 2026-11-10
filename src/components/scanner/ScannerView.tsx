@@ -18,7 +18,7 @@ const BarcodeScanner = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex min-h-[220px] items-center justify-center border-4 border-drip-ink bg-drip-ink text-sm font-bold uppercase text-drip-paper">
+      <div className="flex min-h-[220px] items-center justify-center rounded-2xl border border-drip-border bg-drip-elevated text-sm text-drip-muted">
         Chargement du scanner…
       </div>
     ),
@@ -144,15 +144,15 @@ export function ScannerView() {
         />
       )}
 
-      <header className="hidden border-b-4 border-drip-ink bg-drip-surface px-4 py-4 shadow-brutal-volt md:block">
+      <header className="drip-header hidden md:block">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="drip-kicker text-drip-ink/70">Emballage</p>
-            <h1 className="text-2xl font-black uppercase">Scanner</h1>
+            <p className="drip-kicker">Emballage</p>
+            <h1 className="drip-title text-2xl">Scanner</h1>
           </div>
           <Link
             href="/imposition"
-            className="drip-touch inline-flex items-center gap-2 border-4 border-drip-ink bg-drip-volt px-4 py-2 text-xs font-black uppercase shadow-brutal-sm"
+            className="drip-touch inline-flex items-center gap-2 rounded-xl border border-drip-border bg-drip-elevated px-4 py-2 text-xs font-medium"
           >
             <ArrowLeft className="h-4 w-4" strokeWidth={3} />
             Bureau
@@ -171,7 +171,7 @@ export function ScannerView() {
         <button
           type="button"
           onClick={() => setManualOpen((v) => !v)}
-          className="drip-touch flex w-full items-center justify-center gap-2 border-4 border-drip-ink bg-drip-surface py-3 text-xs font-bold uppercase"
+          className="drip-touch drip-card flex w-full items-center justify-center gap-2 py-3 text-xs font-medium"
           data-testid="toggle-manual-entry"
         >
           <Keyboard className="h-4 w-4" />
@@ -196,12 +196,12 @@ export function ScannerView() {
               onChange={(e) => setManualCode(e.target.value)}
               placeholder="1042-F1-S1 ou ID Shopify"
               autoComplete="off"
-              className="min-h-[48px] flex-1 border-4 border-drip-ink bg-drip-surface px-3 font-mono text-sm outline-none"
+              className="min-h-[48px] flex-1 rounded-xl border border-drip-border bg-drip-elevated px-3 font-mono text-sm outline-none focus:ring-2 focus:ring-drip-volt/30"
               data-testid="manual-track-input"
             />
             <button
               type="submit"
-              className="drip-btn-volt drip-touch border-4 px-6 py-3 shadow-brutal-sm sm:px-4 sm:py-2"
+              className="drip-btn-volt drip-touch px-6 py-3 sm:px-4 sm:py-2"
             >
               Valider
             </button>
@@ -210,7 +210,7 @@ export function ScannerView() {
 
         {apiError && (
           <p
-            className="border-4 border-red-600 bg-red-100 px-3 py-3 text-sm font-bold text-red-950"
+            className="drip-flash-err"
             data-testid="scanner-error"
             role="alert"
           >
@@ -220,14 +220,14 @@ export function ScannerView() {
 
         {displayLabel && skin && (
           <section
-            className="border-4 border-[#22c55e] bg-[#14532d] px-4 py-6 shadow-[8px_8px_0_0_#ccff00]"
+            className="rounded-2xl border border-emerald-500/35 bg-emerald-500/10 px-4 py-6 shadow-glow-sm"
             data-testid="scan-result"
           >
-            <p className="text-[10px] font-black uppercase tracking-widest text-[#bbf7d0]">
+            <p className="text-[10px] font-medium uppercase tracking-widest text-emerald-300/80">
               Colis identifié
             </p>
             <p
-              className="mt-3 break-words text-2xl font-black leading-tight text-[#dcfce7] sm:text-3xl md:text-4xl"
+              className="font-display mt-3 break-words text-2xl font-medium leading-tight text-emerald-50 sm:text-3xl md:text-4xl"
               data-testid="scan-display-label"
             >
               {displayLabel}
@@ -277,19 +277,19 @@ export function ScannerView() {
         )}
 
         {showHint && (
-          <p className="text-center text-sm font-medium text-drip-ink/45">
+          <p className="text-center text-sm text-drip-muted">
             Vise le code-barres ou QR du track code sur l&apos;étiquette.
           </p>
         )}
       </div>
 
-      <div className="fixed bottom-[calc(var(--drip-tab-bar-h)+var(--drip-safe-bottom))] left-0 right-0 z-40 border-t-4 border-drip-ink bg-drip-paper pl-[var(--drip-safe-left)] pr-[var(--drip-safe-right)] md:bottom-[var(--drip-safe-bottom)]">
+      <div className="drip-glass-nav fixed bottom-[calc(var(--drip-tab-bar-h)+var(--drip-safe-bottom))] left-0 right-0 z-40 border-t-0 pl-[var(--drip-safe-left)] pr-[var(--drip-safe-right)] md:bottom-[var(--drip-safe-bottom)]">
         <div className="mx-auto max-w-lg px-4 py-3">
           <button
             type="button"
             disabled={!canShip}
             onClick={handleShipped}
-            className="drip-btn-volt drip-touch flex w-full min-h-[56px] items-center justify-center gap-3 text-base shadow-brutal disabled:opacity-40 sm:min-h-[64px] sm:text-lg"
+            className="drip-btn-volt drip-touch flex w-full min-h-[56px] items-center justify-center gap-3 text-base disabled:opacity-40 sm:min-h-[64px] sm:text-lg"
             data-testid="mark-shipped-cta"
           >
             <PackageCheck className="h-8 w-8" strokeWidth={3} />

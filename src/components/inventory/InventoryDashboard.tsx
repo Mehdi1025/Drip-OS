@@ -46,7 +46,7 @@ export function InventoryDashboard({ initialItems }: Props) {
     >
       {items.length === 0 ? (
         <div className="drip-empty">
-          <p className="text-lg font-black uppercase">Inventaire vide</p>
+          <p className="text-lg font-display font-medium">Inventaire vide</p>
           <p className="mt-2 text-sm font-medium text-drip-ink/55">
             Exécute la migration 004 et les INSERT de test Supabase.
           </p>

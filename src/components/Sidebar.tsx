@@ -55,25 +55,28 @@ function isNavActive(pathname: string, href: string): boolean {
 
 export function Sidebar() {
   const pathname = usePathname();
-  const statsActive = isNavActive(pathname, "/stats");
 
   return (
-    <aside
-      className="sticky top-0 z-30 hidden h-[100dvh] w-64 shrink-0 flex-col border-r-4 border-drip-ink bg-drip-paper text-drip-ink shadow-[4px_0_0_0_var(--drip-volt)] md:flex"
-    >
-      <div className="shrink-0 border-b-4 border-drip-ink bg-drip-surface px-5 py-5">
-        <div className="inline-block border-4 border-drip-ink bg-drip-volt px-2 py-0.5">
-          <p className="text-[10px] font-black uppercase tracking-[0.25em]">
-            Drip OS
-          </p>
+    <aside className="sticky top-0 z-30 hidden h-[100dvh] w-[17rem] shrink-0 flex-col border-r border-drip-border bg-drip-paper/90 backdrop-blur-2xl md:flex">
+      <div className="shrink-0 border-b border-drip-border px-6 py-7">
+        <div className="flex items-center gap-3">
+          <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-volt shadow-glow-sm">
+            <span className="font-display text-sm font-bold text-drip-paper">
+              D
+            </span>
+            <span className="absolute inset-0 rounded-xl ring-1 ring-white/20" />
+          </div>
+          <div>
+            <p className="font-display text-lg font-semibold tracking-tight">
+              Drip OS
+            </p>
+            <p className="text-[11px] text-drip-muted">Production studio</p>
+          </div>
         </div>
-        <h1 className="mt-3 text-xl font-black uppercase leading-none tracking-tight">
-          Production
-        </h1>
       </div>
 
-      <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-3">
-        <p className="px-2 pb-1 pt-1 text-[9px] font-black uppercase tracking-[0.2em] text-drip-ink/40">
+      <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto p-4">
+        <p className="mb-2 px-3 text-[10px] font-medium uppercase tracking-[0.22em] text-drip-muted">
           Atelier
         </p>
         {productionNav.map((item) => (
@@ -84,7 +87,7 @@ export function Sidebar() {
           />
         ))}
 
-        <p className="mb-1 mt-4 px-2 text-[9px] font-black uppercase tracking-[0.2em] text-drip-ink/40">
+        <p className="mb-2 mt-6 px-3 text-[10px] font-medium uppercase tracking-[0.22em] text-drip-muted">
           Pilotage
         </p>
         {pilotageNav.map((item) => (
@@ -92,23 +95,17 @@ export function Sidebar() {
             key={item.href}
             item={item}
             active={isNavActive(pathname, item.href)}
-            highlight
           />
         ))}
       </nav>
 
-      <div className="shrink-0 space-y-2 border-t-4 border-drip-ink bg-drip-volt/30 px-4 py-3">
-        <Link
-          href="/stats"
-          className={`block border-4 border-drip-ink px-3 py-2 text-center text-[10px] font-black uppercase tracking-wide shadow-brutal-sm transition-transform hover:translate-x-0.5 hover:translate-y-0.5 ${
-            statsActive ? "bg-drip-volt" : "bg-drip-surface hover:bg-drip-volt/80"
-          }`}
-        >
-          Ouvrir statistiques
-        </Link>
-        <p className="text-center text-[10px] font-black uppercase tracking-widest text-drip-ink/50">
-          v0.3 · PWA
-        </p>
+      <div className="shrink-0 space-y-3 border-t border-drip-border p-4">
+        <div className="rounded-xl border border-drip-border bg-drip-surface px-3 py-2.5">
+          <p className="text-[10px] uppercase tracking-widest text-drip-muted">
+            Session
+          </p>
+          <p className="font-mono text-xs text-drip-ink/80">v0.3 · PWA ready</p>
+        </div>
       </div>
     </aside>
   );
@@ -117,7 +114,6 @@ export function Sidebar() {
 function NavLink({
   item,
   active,
-  highlight = false,
 }: {
   item: {
     href: string;
@@ -126,38 +122,34 @@ function NavLink({
     icon: typeof LayoutGrid;
   };
   active: boolean;
-  highlight?: boolean;
 }) {
   const { href, label, description, icon: Icon } = item;
 
   return (
     <Link
       href={href}
-      className={`group flex items-center gap-3 border-4 px-3 py-3 transition-transform active:translate-x-0.5 active:translate-y-0.5 ${
+      className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all duration-200 ${
         active
-          ? "border-drip-ink bg-drip-volt text-drip-ink shadow-brutal-sm"
-          : highlight
-            ? "border-drip-ink/60 bg-drip-volt/35 hover:border-drip-ink hover:bg-drip-volt hover:shadow-[3px_3px_0_0_#0a0a0a]"
-            : "border-transparent bg-drip-surface/90 hover:border-drip-ink hover:bg-drip-surface hover:shadow-[3px_3px_0_0_#0a0a0a]"
+          ? "bg-drip-volt/[0.12] text-drip-ink shadow-glow-sm ring-1 ring-drip-volt/25"
+          : "text-drip-muted hover:bg-white/[0.04] hover:text-drip-ink"
       }`}
     >
       <span
-        className={`flex h-10 w-10 shrink-0 items-center justify-center border-2 border-drip-ink ${
-          active ? "bg-drip-surface" : "bg-drip-paper group-hover:bg-drip-volt/40"
+        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors ${
+          active
+            ? "bg-drip-volt/20 text-drip-volt"
+            : "bg-drip-elevated text-drip-muted group-hover:text-drip-ink"
         }`}
       >
-        <Icon className="h-5 w-5" strokeWidth={2.5} />
+        <Icon className="h-[18px] w-[18px]" strokeWidth={2} />
       </span>
       <span className="flex min-w-0 flex-col leading-tight">
-        <span className="truncate text-sm font-black uppercase">{label}</span>
-        <span
-          className={`truncate text-[10px] font-bold uppercase tracking-wide ${
-            active ? "text-drip-ink/70" : "text-drip-ink/45"
-          }`}
-        >
-          {description}
-        </span>
+        <span className="truncate text-sm font-medium">{label}</span>
+        <span className="truncate text-[11px] text-drip-muted">{description}</span>
       </span>
+      {active && (
+        <span className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-drip-volt shadow-[0_0_8px_#d8ff52]" />
+      )}
     </Link>
   );
 }

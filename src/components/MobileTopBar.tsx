@@ -28,30 +28,30 @@ export function MobileTopBar() {
   const onScanner = pathname.startsWith("/scanner");
 
   return (
-    <header className="drip-gutter-x sticky top-0 z-40 flex min-h-[var(--drip-mobile-top-h)] items-center justify-between gap-2 border-b-4 border-drip-ink bg-drip-volt pb-3 pt-[calc(0.75rem+var(--drip-safe-top))] md:hidden">
+    <header className="drip-glass-nav drip-gutter-x sticky top-0 z-40 flex min-h-[var(--drip-mobile-top-h)] items-center justify-between gap-3 border-b-0 py-3 pt-[calc(0.65rem+var(--drip-safe-top))] md:hidden">
       {onScanner ? (
         <Link
           href="/imposition"
-          className="drip-touch flex shrink-0 items-center gap-1 border-2 border-drip-ink bg-drip-paper px-2 py-1.5 text-[10px] font-black uppercase"
+          className="drip-touch flex shrink-0 items-center gap-1.5 rounded-lg border border-drip-border bg-drip-elevated px-2.5 py-2 text-xs font-medium text-drip-ink"
         >
-          <ArrowLeft className="h-4 w-4" strokeWidth={3} />
+          <ArrowLeft className="h-4 w-4" strokeWidth={2} />
           Bureau
         </Link>
       ) : (
         <Link
           href="/imposition"
-          className="shrink-0 border-2 border-drip-ink bg-drip-paper px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.2em]"
+          className="font-display shrink-0 text-sm font-semibold tracking-tight"
         >
-          Drip OS
+          Drip
         </Link>
       )}
-      <p className="truncate text-center text-sm font-black uppercase tracking-wide">
+      <p className="truncate text-center font-display text-sm font-medium tracking-tight">
         {title}
       </p>
       {onScanner ? (
         <Link
           href="/workshop"
-          className="drip-touch shrink-0 border-2 border-drip-ink bg-drip-paper px-2 py-1.5 text-[10px] font-black uppercase"
+          className="drip-touch shrink-0 rounded-lg border border-drip-border bg-drip-elevated px-2.5 py-2 text-xs font-medium"
         >
           Atelier
         </Link>
