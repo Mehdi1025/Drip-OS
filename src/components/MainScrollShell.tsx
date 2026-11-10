@@ -9,7 +9,7 @@ export function MainScrollShell({ children }: { children: ReactNode }) {
 
   return (
     <main
-      className={`drip-main-scroll min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-drip-paper ${
+      className={`drip-main-scroll drip-wm-dashboard-bg min-h-0 flex-1 overflow-x-hidden overflow-y-auto ${
         isScanner ? "drip-main-scroll--scanner" : ""
       }`}
     >
