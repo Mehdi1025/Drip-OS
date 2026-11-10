@@ -1,6 +1,11 @@
-/** Normalise la valeur lue (scan manuel ou caméra). */
+const TRACK_FROM_URL = /(\d+-F\d+-S\d+)\s*$/i;
+
+/** Normalise la valeur lue (scan manuel, caméra ou URL avec track code en fin). */
 export function normalizeTrackCode(raw: string): string {
-  return raw.trim();
+  const trimmed = raw.trim();
+  const fromUrl = trimmed.match(TRACK_FROM_URL);
+  if (fromUrl?.[1]) return fromUrl[1];
+  return trimmed;
 }
 
 const TRACK_CODE_PATTERN = /^\d+-F\d+-S\d+$/;

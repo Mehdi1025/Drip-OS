@@ -1,7 +1,7 @@
 type Props = {
   label: string;
   value: number;
-  variant?: "default" | "volt" | "danger";
+  variant?: "default" | "volt" | "danger" | "success";
 };
 
 export function StatBadge({ label, value, variant = "default" }: Props) {
@@ -10,14 +10,18 @@ export function StatBadge({ label, value, variant = "default" }: Props) {
       ? "drip-stat-volt border-drip-volt/30"
       : variant === "danger"
         ? "border-red-500/25 bg-red-500/10"
-        : "drip-stat";
+        : variant === "success"
+          ? "border-emerald-500/25 bg-emerald-500/10"
+          : "drip-stat";
 
   const valueColor =
     variant === "volt"
       ? "text-drip-volt"
       : variant === "danger"
         ? "text-red-600"
-        : "text-drip-ink";
+        : variant === "success"
+          ? "text-emerald-600"
+          : "text-drip-ink";
 
   return (
     <div

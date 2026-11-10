@@ -12,7 +12,7 @@ import { fulfillSkinUnitOnShopify } from "@/lib/shopify/fulfill-skin";
 import { normalizeShopifyNumericId } from "@/lib/shopify/numeric-id";
 import { createSupabaseAdmin } from "@/lib/supabase/admin";
 
-const SHIPPABLE_STATUSES = ["imposed", "printed", "cut"] as const;
+const SHIPPABLE_STATUS = "cut" as const;
 
 export type FetchSkinByTrackResult =
   | {
@@ -117,11 +117,9 @@ async function fetchSkinByTrackCodeInner(
       mapSkinRow(row, orderRow)
     );
     const primary =
-      orderSkins.find((s) =>
-        SHIPPABLE_STATUSES.includes(
-          s.status as (typeof SHIPPABLE_STATUSES)[number]
-        )
-      ) ?? orderSkins[0];
+      orderSkins.find((s) => s.status === "cut") ??
+      orderSkins.find((s) => s.status !== "shipped" && s.status !== "scrap") ??
+      orderSkins[0];
 
     return {
       ok: true,
@@ -147,6 +145,7 @@ async function fetchSkinByTrackCodeInner(
       track_code,
       status,
       orders (
+        id,
         id_shopify,
         customer_name,
         shipping_method
@@ -162,7 +161,7 @@ async function fetchSkinByTrackCodeInner(
   }
 
   if (!data) {
-    return { ok: false, error: `Aucun skin pour le code ${trackCode}.` };
+    return { ok: false, error: "Code inconnu." };
   }
 
   const order = data.orders;
@@ -174,10 +173,22 @@ async function fetchSkinByTrackCodeInner(
 
   const skin = mapSkinRow(data, orderRecord);
 
+  const { data: siblingRows } = await supabase
+    .from("skins")
+    .select("id, design_name, track_code, status")
+    .eq("order_id", orderRecord.id)
+    .neq("status", "scrap")
+    .order("track_code", { ascending: true });
+
+  const orderSkins = (siblingRows ?? []).map((row) =>
+    mapSkinRow(row, orderRecord)
+  );
+
   return {
     ok: true,
     skin,
     displayLabel: buildScanDisplayLabel(skin),
+    orderSkins,
   };
 }
 
@@ -219,25 +230,33 @@ async function markSkinShippedInner(skinId: string): Promise<ShipSkinResult> {
   }
 
   if (existing.status === "shipped") {
-    return { ok: false, error: "Ce skin est déjà expédié." };
+    return { ok: false, error: "Déjà expédié." };
   }
 
-  if (
-    !SHIPPABLE_STATUSES.includes(
-      existing.status as (typeof SHIPPABLE_STATUSES)[number]
-    )
-  ) {
+  if (existing.status === "scrap") {
+    return { ok: false, error: "Mis au rebut." };
+  }
+
+  if (existing.status === "planche_prete" || existing.status === "printed") {
+    return { ok: false, error: "Pas encore découpé." };
+  }
+
+  if (existing.status === "imposed" || existing.status === "pending") {
     return {
       ok: false,
-      error: `Statut « ${existing.status} » — passe d'abord par Imposition / Atelier (pending ou scrap).`,
+      error: "Production incomplète — imposition / découpe requises.",
     };
+  }
+
+  if (existing.status !== SHIPPABLE_STATUS) {
+    return { ok: false, error: "Code inconnu ou statut incompatible." };
   }
 
   const { data: updated, error } = await supabase
     .from("skins")
     .update({ status: "shipped" })
     .eq("id", skinId)
-    .in("status", [...SHIPPABLE_STATUSES])
+    .eq("status", SHIPPABLE_STATUS)
     .select("id")
     .maybeSingle();
 

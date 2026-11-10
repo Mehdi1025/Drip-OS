@@ -120,13 +120,19 @@ export function ScannerView() {
     });
   }
 
-  const shippableStatuses = ["imposed", "printed", "cut"] as const;
-  const canShip =
-    skin != null &&
-    shippableStatuses.includes(
-      skin.status as (typeof shippableStatuses)[number]
-    ) &&
-    !isShipping;
+  const canShip = skin?.status === "cut" && !isShipping;
+
+  const orderProgress =
+    orderSkins && orderSkins.length > 0
+      ? {
+          shipped: orderSkins.filter((s) => s.status === "shipped").length,
+          total: orderSkins.length,
+        }
+      : null;
+  const orderComplete =
+    orderProgress != null &&
+    orderProgress.shipped === orderProgress.total &&
+    orderProgress.total > 0;
 
   const showHint =
     !displayLabel && !apiError && !cameraNotice && !manualOpen;
@@ -236,12 +242,17 @@ export function ScannerView() {
             <p className="mt-1 text-sm font-bold uppercase text-[#bbf7d0]/80">
               {skin.customerName} · {skin.shippingMethod}
             </p>
-            {!shippableStatuses.includes(
-              skin.status as (typeof shippableStatuses)[number]
-            ) && (
+            {skin.status !== "cut" && (
               <p className="mt-3 text-sm font-bold text-amber-300">
-                Statut actuel : {skin.status} — génère un lot (Imposition) ou
-                valide l&apos;atelier avant expédition.
+                Statut : {skin.status} — expédition possible uniquement après
+                découpe (statut cut).
+              </p>
+            )}
+            {orderProgress && (
+              <p className="mt-3 text-sm font-medium text-[#bbf7d0]">
+                Commande #{skin.orderShopifyId} : {orderProgress.shipped}/
+                {orderProgress.total} skins scannés
+                {orderComplete ? " · Commande complète" : ""}
               </p>
             )}
             {orderSkins && orderSkins.length > 1 && (

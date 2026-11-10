@@ -18,6 +18,7 @@ import {
   countDistinctOrders,
   decrementInventoryForLot,
 } from "@/lib/inventory/decrement-for-lot";
+import type { LotAwaitingFileRow } from "@/lib/lots/types";
 import { createSupabaseAdmin } from "@/lib/supabase/admin";
 
 export type GenerateLotResult =
@@ -47,6 +48,7 @@ export async function fetchPendingSkins(): Promise<PendingSkin[]> {
       id,
       design_name,
       track_code,
+      reprint_of,
       order_id,
       orders (
         customer_name,
@@ -76,6 +78,7 @@ export async function fetchPendingSkins(): Promise<PendingSkin[]> {
         id: row.id,
         design_name: row.design_name,
         track_code: row.track_code,
+        reprint_of: row.reprint_of as string | null,
         order_id: row.order_id,
         customer_name: orderRecord.customer_name,
         id_shopify: orderRecord.id_shopify,
@@ -209,6 +212,8 @@ export async function generateLotFromPending(): Promise<GenerateLotResult> {
   });
 
   revalidatePath("/imposition");
+  revalidatePath("/inventory");
+  revalidatePath("/stats");
 
   if (!inventoryResult.ok) {
     return {
@@ -220,11 +225,78 @@ export async function generateLotFromPending(): Promise<GenerateLotResult> {
     };
   }
 
+  revalidatePath(`/lots/${lotId}`);
+
   return {
     ok: true,
     lotId,
     sheets: sheetCount,
     skins: pending.length,
     stockAlertsSent: inventoryResult.alertsSent,
+  };
+}
+
+export async function fetchLotsAwaitingFiles(): Promise<{
+  rows: LotAwaitingFileRow[];
+  totalMissing: number;
+}> {
+  const supabase = createSupabaseAdmin();
+  const { data: sheets, error } = await supabase
+    .from("sheets")
+    .select("id, lot_id, file_status, lots ( created_at )")
+    .eq("file_status", "attente_fichier");
+
+  if (error || !sheets?.length) {
+    return { rows: [], totalMissing: 0 };
+  }
+
+  const byLot = new Map<
+    string,
+    { createdAt: string; missing: number; total: number }
+  >();
+
+  for (const sheet of sheets) {
+    const lotId = sheet.lot_id;
+    const lot = sheet.lots;
+    const createdAt =
+      lot && typeof lot === "object" && "created_at" in lot
+        ? String((lot as { created_at: string }).created_at)
+        : new Date().toISOString();
+    const cur = byLot.get(lotId) ?? {
+      createdAt,
+      missing: 0,
+      total: 0,
+    };
+    cur.missing += 1;
+    cur.total += 1;
+    byLot.set(lotId, cur);
+  }
+
+  const { data: allSheets } = await supabase
+    .from("sheets")
+    .select("lot_id")
+    .in("lot_id", Array.from(byLot.keys()));
+
+  const totalByLot = new Map<string, number>();
+  for (const s of allSheets ?? []) {
+    totalByLot.set(s.lot_id, (totalByLot.get(s.lot_id) ?? 0) + 1);
+  }
+
+  const now = Date.now();
+  const rows: LotAwaitingFileRow[] = Array.from(byLot.entries()).map(
+    ([lotId, v]) => ({
+      lotId,
+      createdAt: v.createdAt,
+      missingSheets: v.missing,
+      totalSheets: totalByLot.get(lotId) ?? v.total,
+      ageHours: Math.round((now - new Date(v.createdAt).getTime()) / 3600000),
+    })
+  );
+
+  rows.sort((a, b) => b.ageHours - a.ageHours);
+
+  return {
+    rows,
+    totalMissing: sheets.length,
   };
 }

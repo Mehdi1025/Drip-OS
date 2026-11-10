@@ -2,17 +2,30 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Plus } from "lucide-react";
-import { refillInventoryItem } from "@/app/inventory/actions";
+import {
+  refillInventoryItem,
+  setInventoryQuantity,
+} from "@/app/inventory/actions";
+
+type Mode = "add" | "set";
 
 type Props = {
   itemId: string;
   itemName: string;
   unit: string;
+  currentQuantity: number;
   onRefilled: (newQuantity: number) => void;
 };
 
-export function RefillPopover({ itemId, itemName, unit, onRefilled }: Props) {
+export function RefillPopover({
+  itemId,
+  itemName,
+  unit,
+  currentQuantity,
+  onRefilled,
+}: Props) {
   const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState<Mode>("add");
   const [amount, setAmount] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -36,13 +49,36 @@ export function RefillPopover({ itemId, itemName, unit, onRefilled }: Props) {
     setError(null);
     const value = parseFloat(amount.replace(",", "."));
 
+    if (!Number.isFinite(value)) {
+      setError("Saisis une quantité valide.");
+      return;
+    }
+
     startTransition(async () => {
-      const result = await refillInventoryItem(itemId, value);
-      if (!result.ok) {
-        setError(result.error);
-        return;
+      if (mode === "add") {
+        if (value <= 0) {
+          setError("Quantité à ajouter > 0.");
+          return;
+        }
+        const result = await refillInventoryItem(itemId, value);
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+        onRefilled(result.newQuantity);
+      } else {
+        if (value < 0) {
+          setError("La quantité ne peut pas être négative.");
+          return;
+        }
+        const result = await setInventoryQuantity(itemId, value);
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+        onRefilled(result.newQuantity);
       }
-      onRefilled(result.newQuantity);
+
       setAmount("");
       setOpen(false);
     });
@@ -56,7 +92,7 @@ export function RefillPopover({ itemId, itemName, unit, onRefilled }: Props) {
         className="drip-btn-volt flex w-full items-center justify-center gap-2 py-3 text-sm"
       >
         <Plus className="h-5 w-5" strokeWidth={2.5} />
-        Réassort
+        Mettre à jour le stock
       </button>
 
       {open && (
@@ -65,16 +101,45 @@ export function RefillPopover({ itemId, itemName, unit, onRefilled }: Props) {
           className="drip-glass-nav absolute bottom-full left-0 right-0 z-20 mb-2 rounded-xl p-4"
         >
           <p className="text-[10px] font-medium uppercase tracking-widest text-drip-muted">
-            Ajouter au stock
+            Stock
           </p>
           <p className="mt-1 truncate text-xs">{itemName}</p>
+          <p className="mt-0.5 font-mono text-[10px] text-drip-muted">
+            Actuel : {currentQuantity} {unit}
+          </p>
+
+          <div className="mt-3 flex rounded-lg border border-drip-border p-0.5">
+            <button
+              type="button"
+              onClick={() => setMode("add")}
+              className={`flex-1 rounded-md py-1.5 text-[11px] font-medium transition ${
+                mode === "add"
+                  ? "bg-drip-volt/20 text-drip-ink"
+                  : "text-drip-muted hover:text-drip-ink"
+              }`}
+            >
+              Ajouter
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("set")}
+              className={`flex-1 rounded-md py-1.5 text-[11px] font-medium transition ${
+                mode === "set"
+                  ? "bg-drip-volt/20 text-drip-ink"
+                  : "text-drip-muted hover:text-drip-ink"
+              }`}
+            >
+              Définir
+            </button>
+          </div>
+
           <div className="mt-3 flex gap-2">
             <input
               type="number"
-              min="0.01"
+              min={mode === "add" ? "0.01" : "0"}
               step="any"
               inputMode="decimal"
-              placeholder="+100"
+              placeholder={mode === "add" ? "+100" : String(currentQuantity)}
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               className="min-h-[44px] flex-1 rounded-lg border border-drip-border bg-drip-paper px-3 font-mono text-sm outline-none ring-drip-volt/30 focus:ring-2"
@@ -84,9 +149,7 @@ export function RefillPopover({ itemId, itemName, unit, onRefilled }: Props) {
               {unit}
             </span>
           </div>
-          {error && (
-            <p className="mt-2 text-xs text-red-300">{error}</p>
-          )}
+          {error && <p className="mt-2 text-xs text-red-300">{error}</p>}
           <button
             type="submit"
             disabled={isPending}

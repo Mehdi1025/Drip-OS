@@ -13,7 +13,9 @@ export interface ShopifyLineItem {
   product_id: number | null;
   /** Present when Shopify sends expanded product on webhook (optional). */
   product_type?: string | null;
-  properties?: ShopifyLineItemProperty[];
+  product_handle?: string | null;
+  handle?: string | null;
+  properties?: ShopifyLineItemProperty[] | Record<string, unknown>;
 }
 
 export interface ShopifyShippingLine {

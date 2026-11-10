@@ -33,7 +33,7 @@ const productionNav = [
   {
     href: "/inventory",
     label: "Stock",
-    description: "Smart Restock",
+    description: "Nomenclature",
     icon: Package,
   },
 ] as const;

@@ -1,17 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { backfillMissingLineItemsForOrderUuid } from "@/lib/shopify/backfill-line-items";
+import { buildSkinInsertRows } from "@/lib/shopify/create-order-skins";
+import { handleShopifyOrderCancelled } from "@/lib/shopify/order-cancel-update";
 import { createSupabaseAdmin } from "@/lib/supabase/admin";
-import { isSkinLineItem } from "@/lib/shopify/is-skin-line-item";
 import {
-  buildTrackCode,
   resolveCustomerName,
-  resolveDesignName,
-  resolveOrderTrackPrefix,
   resolveShippingMethod,
 } from "@/lib/shopify/order-helpers";
 import {
   extractShopifyOrderIdFromWebhookBody,
-  resolveLineItemIdForWebhookRow,
 } from "@/lib/shopify/parse-webhook-ids";
 import type { ShopifyOrderWebhookPayload } from "@/lib/shopify/types";
 import { HMAC_HEADER, verifyShopifyWebhook } from "@/lib/shopify/verify-webhook";
@@ -20,9 +17,14 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const TOPIC_HEADER = "x-shopify-topic";
+const SUPPORTED_TOPICS = new Set([
+  "orders/create",
+  "orders/cancelled",
+  "orders/updated",
+]);
 
 function jsonError(message: string, status: number) {
-  return NextResponse.json({ ok: false, error: message }, { status });
+  return NextResponse.json({ error: message }, { status });
 }
 
 function parseOrderPayload(rawBody: string): {
@@ -51,19 +53,162 @@ function parseOrderPayload(rawBody: string): {
     throw new Error("Order payload missing Shopify order id");
   }
 
-  return { order: order, orderId };
+  return { order, orderId };
+}
+
+function orderIsCancelled(order: ShopifyOrderWebhookPayload): boolean {
+  const raw = order as ShopifyOrderWebhookPayload & {
+    cancelled_at?: string | null;
+    cancel_reason?: string | null;
+  };
+  return Boolean(raw.cancelled_at);
+}
+
+async function resolveOrderUuid(
+  idShopify: string,
+  shopifyOrder: ShopifyOrderWebhookPayload
+): Promise<string> {
+  const supabase = createSupabaseAdmin();
+  const { data: existing } = await supabase
+    .from("orders")
+    .select("id")
+    .eq("id_shopify", idShopify)
+    .maybeSingle();
+
+  if (existing?.id) return existing.id;
+
+  const { data: inserted, error } = await supabase
+    .from("orders")
+    .insert({
+      id_shopify: idShopify,
+      customer_name: resolveCustomerName(shopifyOrder),
+      shipping_method: resolveShippingMethod(shopifyOrder),
+    })
+    .select("id")
+    .single();
+
+  if (error || !inserted) {
+    throw new Error("Failed to insert order");
+  }
+  return inserted.id;
+}
+
+async function handleOrderCreate(
+  rawBody: string,
+  shopifyOrder: ShopifyOrderWebhookPayload,
+  idShopify: string
+) {
+  const supabase = createSupabaseAdmin();
+  const customerName = resolveCustomerName(shopifyOrder);
+  const shippingMethod = resolveShippingMethod(shopifyOrder);
+
+  const { data: existingOrder, error: existingError } = await supabase
+    .from("orders")
+    .select("id")
+    .eq("id_shopify", idShopify)
+    .maybeSingle();
+
+  if (existingError) {
+    console.error("[shopify/webhook] orders lookup failed", existingError);
+    return jsonError("Database error while checking order", 500);
+  }
+
+  let orderId: string;
+
+  if (existingOrder) {
+    orderId = existingOrder.id;
+  } else {
+    const { data: insertedOrder, error: insertOrderError } = await supabase
+      .from("orders")
+      .insert({
+        id_shopify: idShopify,
+        customer_name: customerName,
+        shipping_method: shippingMethod,
+      })
+      .select("id")
+      .single();
+
+    if (insertOrderError || !insertedOrder) {
+      if (insertOrderError?.code === "23505") {
+        const { data: racedOrder } = await supabase
+          .from("orders")
+          .select("id")
+          .eq("id_shopify", idShopify)
+          .single();
+        if (!racedOrder) {
+          return jsonError("Failed to resolve duplicate order", 500);
+        }
+        orderId = racedOrder.id;
+      } else {
+        return jsonError("Failed to insert order", 500);
+      }
+    } else {
+      orderId = insertedOrder.id;
+    }
+  }
+
+  const { count: existingSkinCount, error: skinCountError } = await supabase
+    .from("skins")
+    .select("id", { count: "exact", head: true })
+    .eq("order_id", orderId);
+
+  if (skinCountError) {
+    return jsonError("Database error while checking skins", 500);
+  }
+
+  if (existingSkinCount && existingSkinCount > 0) {
+    const lineItemsBackfilled = await backfillMissingLineItemsForOrderUuid(
+      orderId,
+      shopifyOrder.line_items,
+      rawBody
+    );
+    return NextResponse.json({
+      ok: true,
+      duplicate: true,
+      order_id: orderId,
+      skins_created: 0,
+      line_items_backfilled: lineItemsBackfilled,
+    });
+  }
+
+  const skinRows = buildSkinInsertRows(orderId, shopifyOrder, rawBody);
+
+  if (skinRows.length === 0) {
+    return NextResponse.json({
+      ok: true,
+      order_id: orderId,
+      skins_created: 0,
+      message: "Order saved, no Skin line items found",
+    });
+  }
+
+  const { data: insertedSkins, error: insertSkinsError } = await supabase
+    .from("skins")
+    .insert(skinRows)
+    .select("id, track_code");
+
+  if (insertSkinsError) {
+    console.error("[shopify/webhook] skins insert failed", insertSkinsError);
+    return jsonError("Failed to insert skins", 500);
+  }
+
+  return NextResponse.json({
+    ok: true,
+    order_id: orderId,
+    skins_created: insertedSkins?.length ?? skinRows.length,
+    track_codes: insertedSkins?.map((s) => s.track_code) ?? [],
+  });
 }
 
 export async function POST(request: NextRequest) {
   try {
     const webhookSecret = process.env.SHOPIFY_WEBHOOK_SECRET;
     if (!webhookSecret) {
-      console.error("[shopify/webhook] SHOPIFY_WEBHOOK_SECRET is not configured");
       return jsonError("Server configuration error", 500);
     }
 
-    const topic = request.headers.get(TOPIC_HEADER);
-    if (topic && topic !== "orders/create") {
+    const topic = request.headers.get(TOPIC_HEADER) ?? "orders/create";
+    if (!SUPPORTED_TOPICS.has(topic)) {
       return jsonError(`Unsupported webhook topic: ${topic}`, 400);
     }
 
@@ -79,176 +224,26 @@ export async function POST(request: NextRequest) {
 
     const { order: shopifyOrder, orderId: idShopify } =
       parseOrderPayload(rawBody);
-    const supabase = createSupabaseAdmin();
-    const customerName = resolveCustomerName(shopifyOrder);
-    const shippingMethod = resolveShippingMethod(shopifyOrder);
-    const orderTrackPrefix = resolveOrderTrackPrefix(shopifyOrder);
 
-    const { data: existingOrder, error: existingError } = await supabase
-      .from("orders")
-      .select("id")
-      .eq("id_shopify", idShopify)
-      .maybeSingle();
-
-    if (existingError) {
-      console.error("[shopify/webhook] orders lookup failed", existingError);
-      return jsonError("Database error while checking order", 500);
+    if (topic === "orders/create") {
+      return handleOrderCreate(rawBody, shopifyOrder, idShopify);
     }
 
-    let orderId: string;
+    const shouldCancel =
+      topic === "orders/cancelled" || orderIsCancelled(shopifyOrder);
 
-    if (existingOrder) {
-      orderId = existingOrder.id;
-    } else {
-      const { data: insertedOrder, error: insertOrderError } = await supabase
-        .from("orders")
-        .insert({
-          id_shopify: idShopify,
-          customer_name: customerName,
-          shipping_method: shippingMethod,
-        })
-        .select("id")
-        .single();
-
-      if (insertOrderError || !insertedOrder) {
-        if (insertOrderError?.code === "23505") {
-          const { data: racedOrder, error: raceError } = await supabase
-            .from("orders")
-            .select("id")
-            .eq("id_shopify", idShopify)
-            .single();
-
-          if (raceError || !racedOrder) {
-            console.error("[shopify/webhook] orders race recovery failed", raceError);
-            return jsonError("Failed to resolve duplicate order", 500);
-          }
-
-          orderId = racedOrder.id;
-        } else {
-          console.error("[shopify/webhook] orders insert failed", insertOrderError);
-          return jsonError("Failed to insert order", 500);
-        }
-      } else {
-        orderId = insertedOrder.id;
-      }
+    if (!shouldCancel) {
+      return NextResponse.json({ ok: true, ignored: true, topic });
     }
 
-    const { count: existingSkinCount, error: skinCountError } = await supabase
-      .from("skins")
-      .select("id", { count: "exact", head: true })
-      .eq("order_id", orderId);
+    const orderUuid = await resolveOrderUuid(idShopify, shopifyOrder);
+    const result = await handleShopifyOrderCancelled(orderUuid, idShopify);
 
-    if (skinCountError) {
-      console.error("[shopify/webhook] skins count failed", skinCountError);
-      return jsonError("Database error while checking skins", 500);
-    }
-
-    if (existingSkinCount && existingSkinCount > 0) {
-      const lineItemsBackfilled = await backfillMissingLineItemsForOrderUuid(
-        orderId,
-        shopifyOrder.line_items,
-        rawBody
-      );
-      console.info("[shopify/webhook] duplicate", {
-        id_shopify: idShopify,
-        order_id: orderId,
-        skins_created: 0,
-        line_items_backfilled: lineItemsBackfilled,
-      });
-      return NextResponse.json({
-        ok: true,
-        duplicate: true,
-        order_id: orderId,
-        skins_created: 0,
-        line_items_backfilled: lineItemsBackfilled,
-        message: "Order already processed",
-      });
-    }
-
-    const skinRows: {
-      order_id: string;
-      design_name: string;
-      status: "pending";
-      track_code: string;
-      shopify_line_item_id: string | null;
-    }[] = [];
-
-    let skinLineOrdinal = 0;
-    for (
-      let shopifyLineIndex = 0;
-      shopifyLineIndex < shopifyOrder.line_items.length;
-      shopifyLineIndex += 1
-    ) {
-      const item = shopifyOrder.line_items[shopifyLineIndex];
-      if (!isSkinLineItem(item)) continue;
-
-      skinLineOrdinal += 1;
-      const lineItemIndex = skinLineOrdinal;
-      const quantity = Math.max(0, Math.floor(Number(item.quantity) || 0));
-      const designName = resolveDesignName(item);
-      const lineItemId = resolveLineItemIdForWebhookRow(
-        rawBody,
-        shopifyOrder.line_items,
-        shopifyLineIndex
-      );
-
-      if (!lineItemId) {
-        console.warn("[shopify/webhook] missing line_item id", {
-          id_shopify: idShopify,
-          title: item.title,
-          shopify_line_index: shopifyLineIndex,
-        });
-      }
-
-      for (let skinIndex = 1; skinIndex <= quantity; skinIndex++) {
-        skinRows.push({
-          order_id: orderId,
-          design_name: designName,
-          status: "pending",
-          track_code: buildTrackCode(orderTrackPrefix, lineItemIndex, skinIndex),
-          shopify_line_item_id: lineItemId,
-        });
-      }
-    }
-
-    if (skinRows.length === 0) {
-      console.info("[shopify/webhook] no skins matched", {
-        id_shopify: idShopify,
-        order_id: orderId,
-        skins_created: 0,
-        line_items: shopifyOrder.line_items.length,
-        import_all: process.env.SHOPIFY_IMPORT_ALL_LINE_ITEMS === "true",
-        titles: shopifyOrder.line_items.map((i) => i.title),
-      });
-      return NextResponse.json({
-        ok: true,
-        order_id: orderId,
-        skins_created: 0,
-        message: "Order saved, no Skin line items found",
-      });
-    }
-
-    const { data: insertedSkins, error: insertSkinsError } = await supabase
-      .from("skins")
-      .insert(skinRows)
-      .select("id, track_code");
-
-    if (insertSkinsError) {
-      console.error("[shopify/webhook] skins insert failed", insertSkinsError);
-      return jsonError("Failed to insert skins", 500);
-    }
-
-    const skinsCreated = insertedSkins?.length ?? skinRows.length;
-    console.info("[shopify/webhook] ok", {
-      id_shopify: idShopify,
-      order_id: orderId,
-      skins_created: skinsCreated,
-    });
     return NextResponse.json({
       ok: true,
-      order_id: orderId,
-      skins_created: skinsCreated,
-      track_codes: insertedSkins?.map((s) => s.track_code) ?? [],
+      topic,
+      order_id: orderUuid,
+      ...result,
     });
   } catch (error) {
     const message =

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState, useTransition } from "react";
 import { ScanLine, Search } from "lucide-react";
@@ -187,10 +188,18 @@ export function WorkshopDashboard({ initialRecentLots = [] }: Props) {
         )}
 
         {lotData && (
-          <p className="mt-4 font-mono text-sm font-bold">
-            Lot <span className="text-lg">{lotData.lotId}</span> — {totalSkins}{" "}
-            skin(s) à contrôler
-          </p>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <p className="font-mono text-sm font-bold">
+              Lot <span className="text-lg">{lotData.lotId}</span> — {totalSkins}{" "}
+              skin(s) à contrôler
+            </p>
+            <Link
+              href={`/lots/${lotData.lotId}`}
+              className="text-xs font-medium text-drip-volt underline"
+            >
+              Export / dépôt planches →
+            </Link>
+          </div>
         )}
       </header>
 

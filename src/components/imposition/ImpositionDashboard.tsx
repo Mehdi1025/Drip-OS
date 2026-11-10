@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { chunkSkins } from "@/lib/imposition/group-skins";
@@ -9,11 +10,22 @@ import { SheetPackCard } from "@/components/imposition/SheetPackCard";
 import { DashboardShell } from "@/components/layout/DashboardShell";
 import { StatBadge } from "@/components/layout/StatBadge";
 
-type Props = {
-  initialSkins: PendingSkin[];
+type AwaitingProps = {
+  rows: {
+    lotId: string;
+    missingSheets: number;
+    totalSheets: number;
+    ageHours: number;
+  }[];
+  totalMissing: number;
 };
 
-export function ImpositionDashboard({ initialSkins }: Props) {
+type Props = {
+  initialSkins: PendingSkin[];
+  awaitingFiles: AwaitingProps;
+};
+
+export function ImpositionDashboard({ initialSkins, awaitingFiles }: Props) {
   const router = useRouter();
   const [skins, setSkins] = useState(initialSkins);
   const [flash, setFlash] = useState<{ type: "ok" | "err"; text: string } | null>(
@@ -32,10 +44,48 @@ export function ImpositionDashboard({ initialSkins }: Props) {
         <>
           <StatBadge label="Skins pending" value={skins.length} variant="volt" />
           <StatBadge label="Feuilles A4" value={sheetCount} />
-          <StatBadge label="Emplacements vides" value={emptySlots} />
+          <StatBadge
+            label="Fichiers manquants"
+            value={awaitingFiles.totalMissing}
+            variant={awaitingFiles.totalMissing > 0 ? "danger" : "default"}
+          />
         </>
       }
     >
+      {awaitingFiles.rows.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-xs font-medium uppercase tracking-widest text-drip-muted">
+            Lots en attente de fichier
+          </h2>
+          <ul className="mt-3 space-y-2">
+            {awaitingFiles.rows.map((row) => (
+              <li
+                key={row.lotId}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-drip-border bg-drip-card px-4 py-3"
+              >
+                <div>
+                  <Link
+                    href={`/lots/${row.lotId}`}
+                    className="font-mono font-semibold text-drip-volt"
+                  >
+                    {row.lotId}
+                  </Link>
+                  <p className="text-xs text-drip-muted">
+                    {row.missingSheets}/{row.totalSheets} feuille(s) sans PDF ·{" "}
+                    {row.ageHours} h
+                  </p>
+                </div>
+                <Link
+                  href={`/lots/${row.lotId}`}
+                  className="text-xs font-medium underline"
+                >
+                  Ouvrir le lot →
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       <div className="flex flex-col-reverse gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-8">
         <section className="min-w-0 max-w-full">
           <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -92,7 +142,7 @@ export function ImpositionDashboard({ initialSkins }: Props) {
                 onSuccess={(result) => {
                   setSkins([]);
                   router.refresh();
-                  let text = `Lot ${result.lotId} créé — ${result.sheets} feuille(s).`;
+                  let text = `Lot ${result.lotId} créé — ${result.sheets} feuille(s). Exporte le lot puis dépose les PDF sur /lots/${result.lotId}.`;
                   if (result.inventoryWarning) {
                     text += ` ⚠ Stock : ${result.inventoryWarning}`;
                   } else if (result.stockAlertsSent && result.stockAlertsSent > 0) {

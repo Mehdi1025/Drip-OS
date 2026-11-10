@@ -5,7 +5,8 @@ import { unstable_noStore as noStore } from "next/cache";
 
 export const metadata: Metadata = {
   title: "Statistiques · Drip OS",
-  description: "KPIs production, pipeline skins, stock et tendances 7 jours",
+  description:
+    "Pilotage production : KPIs 7/30 jours, pipeline, commandes, stock et rebuts",
 };
 
 export const dynamic = "force-dynamic";

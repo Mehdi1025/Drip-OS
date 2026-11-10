@@ -12,7 +12,8 @@ import type {
 } from "@/lib/workshop/types";
 import { createSupabaseAdmin } from "@/lib/supabase/admin";
 
-const ACTIVE_WORKSHOP_STATUSES = ["imposed", "printed"] as const;
+const CUTTABLE_STATUSES = ["printed"] as const;
+const VISIBLE_LOT_STATUSES = ["planche_prete", "printed", "imposed"] as const;
 
 export type FetchLotResult =
   | { ok: true; data: WorkshopLotData }
@@ -60,7 +61,7 @@ export async function fetchRecentWorkshopLots(): Promise<RecentWorkshopLot[]> {
       .from("skins")
       .select("sheet_id, status")
       .in("sheet_id", sheetIds)
-      .in("status", [...ACTIVE_WORKSHOP_STATUSES]);
+      .in("status", [...CUTTABLE_STATUSES]);
 
     if (skinsError) {
       console.error("[workshop] recent lots skins", skinsError);
@@ -161,7 +162,7 @@ export async function fetchLotWorkshop(rawLotId: string): Promise<FetchLotResult
     `
     )
     .in("sheet_id", sheetIds)
-    .in("status", [...ACTIVE_WORKSHOP_STATUSES]);
+    .in("status", [...VISIBLE_LOT_STATUSES]);
 
   if (skinsError) {
     console.error("[workshop] skins fetch", skinsError);
@@ -207,7 +208,7 @@ export async function markSkinCut(skinId: string): Promise<SkinActionResult> {
     .from("skins")
     .update({ status: "cut" })
     .eq("id", skinId)
-    .in("status", [...ACTIVE_WORKSHOP_STATUSES]);
+    .in("status", [...CUTTABLE_STATUSES]);
 
   if (error) {
     console.error("[workshop] markSkinCut", error);
@@ -219,15 +220,51 @@ export async function markSkinCut(skinId: string): Promise<SkinActionResult> {
   return { ok: true };
 }
 
+export type MarkSkinScrapResult =
+  | { ok: true; reprintCreated?: boolean }
+  | { ok: false; error: string };
+
 export async function markSkinScrap(
   skinId: string,
   reason: ScrapReasonValue
-): Promise<SkinActionResult> {
+): Promise<MarkSkinScrapResult> {
   if (!isScrapReason(reason)) {
     return { ok: false, error: "Cause de rebut invalide." };
   }
 
   const supabase = createSupabaseAdmin();
+
+  const { data: existing, error: readError } = await supabase
+    .from("skins")
+    .select(
+      "id, order_id, design_name, track_code, visual_url, orientation, framing, product_handle, shopify_line_item_id, sheet_id, status"
+    )
+    .eq("id", skinId)
+    .maybeSingle();
+
+  if (readError || !existing) {
+    return { ok: false, error: "Skin introuvable." };
+  }
+
+  if (
+    !CUTTABLE_STATUSES.includes(
+      existing.status as (typeof CUTTABLE_STATUSES)[number]
+    ) &&
+    existing.status !== "planche_prete" &&
+    existing.status !== "imposed"
+  ) {
+    return { ok: false, error: "Statut incompatible avec le rebut." };
+  }
+
+  let lotId: string | null = null;
+  if (existing.sheet_id) {
+    const { data: sheet } = await supabase
+      .from("sheets")
+      .select("lot_id")
+      .eq("id", existing.sheet_id)
+      .maybeSingle();
+    lotId = sheet?.lot_id ?? null;
+  }
 
   const { error } = await supabase
     .from("skins")
@@ -237,15 +274,47 @@ export async function markSkinScrap(
       sheet_id: null,
       slot: null,
     })
-    .eq("id", skinId)
-    .in("status", [...ACTIVE_WORKSHOP_STATUSES]);
+    .eq("id", skinId);
 
   if (error) {
     console.error("[workshop] markSkinScrap", error);
     return { ok: false, error: "Échec enregistrement du rebut." };
   }
 
+  const prefixMatch = existing.track_code.match(/^(\d+)-/);
+  const orderPrefix = prefixMatch?.[1] ?? "9000";
+  const tempTrack = `${orderPrefix}-F0-S${(Date.now() % 4) + 1}`;
+
+  const { data: reprint, error: reprintError } = await supabase
+    .from("skins")
+    .insert({
+      order_id: existing.order_id,
+      design_name: existing.design_name,
+      status: "pending",
+      track_code: tempTrack,
+      shopify_line_item_id: existing.shopify_line_item_id,
+      visual_url: existing.visual_url,
+      orientation: existing.orientation,
+      framing: existing.framing,
+      product_handle: existing.product_handle,
+      reprint_of: existing.id,
+    })
+    .select("id")
+    .single();
+
+  if (reprintError) {
+    console.error("[workshop] reprint insert", reprintError);
+  } else if (reprint && lotId) {
+    const { insertLotEvent } = await import("@/lib/lots/events");
+    await insertLotEvent(lotId, "reprint", {
+      from_skin_id: existing.id,
+      new_skin_id: reprint.id,
+      reason,
+    });
+  }
+
   revalidatePath("/workshop");
   revalidatePath("/imposition");
-  return { ok: true };
+  revalidatePath("/stats");
+  return { ok: true, reprintCreated: Boolean(reprint && !reprintError) };
 }

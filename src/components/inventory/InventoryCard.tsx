@@ -3,11 +3,25 @@
 import { AlertTriangle, ExternalLink } from "lucide-react";
 import { RefillPopover } from "@/components/inventory/RefillPopover";
 import type { InventoryItem } from "@/lib/inventory/types";
+import { isPerOrderInventoryItem } from "@/lib/inventory/consume";
 import {
   formatStockQuantity,
   isStockOk,
   stockLevelPercent,
 } from "@/lib/inventory/stock-visual";
+
+function usageHint(item: InventoryItem): string {
+  if (item.usage_per_sheet <= 0) {
+    return "Suivi manuel — pas de décompte à la génération de lot";
+  }
+  if (isPerOrderInventoryItem(item.item_name)) {
+    return `${formatStockQuantity(item.usage_per_sheet)} ${item.unit} / commande`;
+  }
+  if (item.unit === "cm") {
+    return `${formatStockQuantity(item.usage_per_sheet)} cm / feuille A4`;
+  }
+  return `${formatStockQuantity(item.usage_per_sheet)} ${item.unit} / feuille A4`;
+}
 
 type Props = {
   item: InventoryItem;
@@ -34,8 +48,7 @@ export function InventoryCard({ item, onQuantityChange }: Props) {
             {item.item_name}
           </h3>
           <p className="mt-1 font-mono text-xs text-drip-muted">
-            {formatStockQuantity(item.usage_per_sheet)} {item.unit} / feuille
-            {item.usage_per_sheet === 0 ? " (ou / cmd)" : ""}
+            {usageHint(item)}
           </p>
         </div>
 
@@ -104,6 +117,7 @@ export function InventoryCard({ item, onQuantityChange }: Props) {
           itemId={item.id}
           itemName={item.item_name}
           unit={item.unit}
+          currentQuantity={item.current_quantity}
           onRefilled={(newQuantity) => onQuantityChange(item.id, newQuantity)}
         />
       </footer>

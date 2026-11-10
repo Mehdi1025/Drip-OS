@@ -1,10 +1,7 @@
 import { backfillMissingLineItemsForOrderUuid } from "@/lib/shopify/backfill-line-items";
-import { isSkinLineItem } from "@/lib/shopify/is-skin-line-item";
+import { buildSkinInsertRows } from "@/lib/shopify/create-order-skins";
 import {
-  buildTrackCode,
   resolveCustomerName,
-  resolveDesignName,
-  resolveOrderTrackPrefix,
   resolveShippingMethod,
 } from "@/lib/shopify/order-helpers";
 import {
@@ -70,8 +67,6 @@ export async function importShopifyOrderFromRawBody(
     const supabase = createSupabaseAdmin();
     const customerName = resolveCustomerName(shopifyOrder);
     const shippingMethod = resolveShippingMethod(shopifyOrder);
-    const orderTrackPrefix = resolveOrderTrackPrefix(shopifyOrder);
-
     const { data: existingOrder, error: existingError } = await supabase
       .from("orders")
       .select("id")
@@ -146,43 +141,7 @@ export async function importShopifyOrderFromRawBody(
       };
     }
 
-    const skinRows: {
-      order_id: string;
-      design_name: string;
-      status: "pending";
-      track_code: string;
-      shopify_line_item_id: string | null;
-    }[] = [];
-
-    let skinLineOrdinal = 0;
-    for (
-      let shopifyLineIndex = 0;
-      shopifyLineIndex < shopifyOrder.line_items.length;
-      shopifyLineIndex += 1
-    ) {
-      const item = shopifyOrder.line_items[shopifyLineIndex];
-      if (!isSkinLineItem(item)) continue;
-
-      skinLineOrdinal += 1;
-      const lineItemIndex = skinLineOrdinal;
-      const quantity = Math.max(0, Math.floor(Number(item.quantity) || 0));
-      const designName = resolveDesignName(item);
-      const lineItemId = resolveLineItemIdForWebhookRow(
-        rawBody,
-        shopifyOrder.line_items,
-        shopifyLineIndex
-      );
-
-      for (let skinIndex = 1; skinIndex <= quantity; skinIndex++) {
-        skinRows.push({
-          order_id: orderId,
-          design_name: designName,
-          status: "pending",
-          track_code: buildTrackCode(orderTrackPrefix, lineItemIndex, skinIndex),
-          shopify_line_item_id: lineItemId,
-        });
-      }
-    }
+    const skinRows = buildSkinInsertRows(orderId, shopifyOrder, rawBody);
 
     if (skinRows.length === 0) {
       return {

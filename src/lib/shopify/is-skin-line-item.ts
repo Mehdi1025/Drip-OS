@@ -23,11 +23,23 @@ function propertyValue(
   item: ShopifyLineItem,
   name: string
 ): string | undefined {
-  const match = item.properties?.find(
-    (p) => p.name.toLowerCase() === name.toLowerCase()
-  );
-  const value = match?.value?.trim();
-  return value || undefined;
+  const raw = item.properties;
+  if (!raw) return undefined;
+  const target = name.toLowerCase();
+  if (Array.isArray(raw)) {
+    const match = raw.find((p) => p.name.toLowerCase() === target);
+    const value = match?.value?.trim();
+    return value || undefined;
+  }
+  if (typeof raw === "object") {
+    for (const [key, value] of Object.entries(raw)) {
+      if (key.toLowerCase() !== target) continue;
+      if (value === null || value === undefined) return undefined;
+      const text = String(value).trim();
+      return text || undefined;
+    }
+  }
+  return undefined;
 }
 
 /**

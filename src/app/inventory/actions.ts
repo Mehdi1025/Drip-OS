@@ -70,5 +70,45 @@ export async function refillInventoryItem(
   }
 
   revalidatePath("/inventory");
+  revalidatePath("/stats");
+  return { ok: true, newQuantity };
+}
+
+export async function setInventoryQuantity(
+  itemId: string,
+  newQuantity: number
+): Promise<RefillResult> {
+  if (!itemId?.trim()) {
+    return { ok: false, error: "Article invalide." };
+  }
+
+  if (!Number.isFinite(newQuantity) || newQuantity < 0) {
+    return { ok: false, error: "Quantité invalide (≥ 0)." };
+  }
+
+  const supabase = createSupabaseAdmin();
+
+  const { data: row, error: readError } = await supabase
+    .from("inventory")
+    .select("id, current_quantity")
+    .eq("id", itemId)
+    .maybeSingle();
+
+  if (readError || !row) {
+    return { ok: false, error: "Article introuvable." };
+  }
+
+  const { error: updateError } = await supabase
+    .from("inventory")
+    .update({ current_quantity: newQuantity })
+    .eq("id", itemId);
+
+  if (updateError) {
+    console.error("[inventory] setQuantity", updateError);
+    return { ok: false, error: "Échec de la mise à jour du stock." };
+  }
+
+  revalidatePath("/inventory");
+  revalidatePath("/stats");
   return { ok: true, newQuantity };
 }

@@ -22,11 +22,13 @@ Ouvrir [http://localhost:3000](http://localhost:3000).
 
 ## Supabase
 
-Exécuter les migrations dans `supabase/migrations/` (ordre 001 → 004).
+Exécuter les migrations dans `supabase/migrations/` (ordre 001 → 007).
 
 ## Webhook Shopify
 
-`POST /api/webhooks/shopify` — événement `orders/create`.
+`POST /api/webhooks/shopify` — `orders/create`, `orders/cancelled`, `orders/updated` (annulation).
+
+Export / planches : `GET /api/lots/[lotId]/export`, dépôt via page `/lots/[lotId]` ou API upload (Bearer `DRIP_ADMIN_SECRET` si configuré).
 
 Webhook (domaine **Production** du projet Vercel → Settings → Domains), ex. :
 

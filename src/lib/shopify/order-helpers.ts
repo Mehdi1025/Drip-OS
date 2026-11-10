@@ -1,4 +1,7 @@
-import type { ShopifyOrderWebhookPayload } from "@/lib/shopify/types";
+import type {
+  ShopifyLineItem,
+  ShopifyOrderWebhookPayload,
+} from "@/lib/shopify/types";
 
 /** Numeric part used in track codes, e.g. #1042 → 1042 */
 export function resolveOrderTrackPrefix(order: ShopifyOrderWebhookPayload): number {
@@ -45,15 +48,25 @@ export function resolveShippingMethod(order: ShopifyOrderWebhookPayload): string
   return "Non spécifié";
 }
 
-export function resolveDesignName(item: {
-  title: string;
-  variant_title: string | null;
-  properties?: { name: string; value: string | null }[];
-}): string {
-  const designProp =
-    item.properties?.find((p) =>
-      ["design", "design_name", "motif"].includes(p.name.toLowerCase())
-    )?.value?.trim() ?? "";
+function designFromProperties(item: ShopifyLineItem): string {
+  const raw = item.properties;
+  if (!raw) return "";
+  const keys = ["design", "design_name", "motif"];
+  if (Array.isArray(raw)) {
+    const match = raw.find((p) => keys.includes(p.name.toLowerCase()));
+    return match?.value?.trim() ?? "";
+  }
+  if (typeof raw === "object") {
+    for (const key of keys) {
+      const val = (raw as Record<string, unknown>)[key];
+      if (val != null && String(val).trim()) return String(val).trim();
+    }
+  }
+  return "";
+}
+
+export function resolveDesignName(item: ShopifyLineItem): string {
+  const designProp = designFromProperties(item);
 
   if (designProp) return designProp;
 
