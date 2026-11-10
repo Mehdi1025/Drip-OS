@@ -9,6 +9,7 @@ import {
   Package,
   BarChart3,
 } from "lucide-react";
+import { BrandMark } from "@/components/BrandMark";
 
 const productionNav = [
   {
@@ -60,9 +61,7 @@ export function Sidebar() {
     <aside className="sticky top-0 z-30 hidden h-[100dvh] w-[17rem] shrink-0 flex-col border-r border-drip-border bg-drip-surface md:flex">
       <div className="shrink-0 border-b border-drip-border px-6 py-7">
         <div className="flex items-center gap-3">
-          <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-volt shadow-glow-sm">
-            <span className="font-display text-sm font-bold text-white">d</span>
-          </div>
+          <BrandMark size={40} className="shrink-0 rounded-xl shadow-glow-sm" />
           <div>
             <p className="font-display text-lg font-semibold lowercase tracking-tight text-drip-ink">
               dripos

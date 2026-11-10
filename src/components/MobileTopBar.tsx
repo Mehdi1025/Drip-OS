@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import { BrandMark } from "@/components/BrandMark";
 
 const TITLES: Record<string, string> = {
   "/imposition": "Imposition",
@@ -38,11 +39,8 @@ export function MobileTopBar() {
           Bureau
         </Link>
       ) : (
-        <Link
-          href="/imposition"
-          className="font-display shrink-0 text-sm font-semibold tracking-tight"
-        >
-          Drip
+        <Link href="/imposition" className="shrink-0" aria-label="Drip OS">
+          <BrandMark size={32} className="rounded-lg" />
         </Link>
       )}
       <p className="truncate text-center font-display text-sm font-medium tracking-tight">
