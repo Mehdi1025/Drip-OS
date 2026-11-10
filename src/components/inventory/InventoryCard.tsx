@@ -73,7 +73,7 @@ export function InventoryCard({ item, onQuantityChange }: Props) {
           <div className="h-2 overflow-hidden rounded-full bg-drip-border">
             <div
               className={`h-full transition-all duration-300 ${
-                ok ? "bg-drip-volt" : "bg-red-500"
+                ok ? "bg-drip-success" : "bg-red-500"
               }`}
               style={{ width: `${percent}%` }}
             />

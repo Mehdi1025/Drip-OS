@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { DM_Sans, Syne } from "next/font/google";
+import { Onest, Syne } from "next/font/google";
 import { MainScrollShell } from "@/components/MainScrollShell";
 import { MobileTabBar } from "@/components/MobileTabBar";
 import { MobileTopBar } from "@/components/MobileTopBar";
@@ -7,9 +7,9 @@ import { PwaInstallBanner } from "@/components/PwaInstallBanner";
 import { Sidebar } from "@/components/Sidebar";
 import "./globals.css";
 
-const dmSans = DM_Sans({
+const onest = Onest({
   subsets: ["latin"],
-  variable: "--font-dm-sans",
+  variable: "--font-onest",
   display: "swap",
 });
 
@@ -42,7 +42,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: "cover",
-  themeColor: "#060608",
+  themeColor: "#14121F",
 };
 
 export default function RootLayout({
@@ -51,7 +51,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr" className={`${dmSans.variable} ${syne.variable}`}>
+    <html lang="fr" className={`${onest.variable} ${syne.variable}`}>
       <body className="overflow-x-hidden font-sans">
         <div className="relative z-[1] flex min-h-[100dvh]">
           <Sidebar />

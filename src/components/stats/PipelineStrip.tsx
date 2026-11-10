@@ -13,25 +13,25 @@ export function PipelineStrip({ steps }: Props) {
 
   return (
     <article className="drip-card overflow-hidden p-0">
-      <div className="border-b-4 border-drip-ink bg-drip-volt px-5 py-3">
-        <h2 className="text-xs font-medium tracking-widest">
+      <div className="border-b border-drip-border bg-drip-volt/15 px-5 py-3">
+        <h2 className="text-xs font-medium tracking-widest text-drip-lilac">
           Pipeline production
         </h2>
       </div>
-      <div className="flex h-14 w-full border-b-4 border-drip-ink">
+      <div className="flex h-14 w-full border-b border-drip-border">
         {steps.map((step, i) => {
           const widthPct = (step.value / total) * 100;
           const shades = [
-            "bg-drip-volt/90",
-            "bg-drip-volt/60",
-            "bg-drip-ink/20",
-            "bg-drip-ink/45",
-            "bg-drip-ink",
+            "bg-drip-volt",
+            "bg-drip-volt/70",
+            "bg-drip-peach/80",
+            "bg-drip-peach/45",
+            "bg-drip-elevated",
           ];
           return (
             <div
               key={step.label}
-              className={`relative border-r-4 border-drip-ink last:border-r-0 ${shades[i] ?? "bg-drip-surface"}`}
+              className={`relative border-r border-drip-border/50 last:border-r-0 ${shades[i] ?? "bg-drip-surface"}`}
               style={{ width: `${Math.max(widthPct, step.value > 0 ? 6 : 0)}%` }}
               title={`${step.label}: ${step.value}`}
             />
@@ -44,8 +44,10 @@ export function PipelineStrip({ steps }: Props) {
             <p className="text-[10px] font-medium tracking-widest text-drip-muted">
               {step.label}
             </p>
-            <p className="font-mono text-2xl font-black">{step.value}</p>
-            <p className="text-xs font-medium text-drip-ink/55">{step.hint}</p>
+            <p className="font-mono text-2xl font-semibold tabular-nums">
+              {step.value}
+            </p>
+            <p className="text-xs text-drip-gray-text">{step.hint}</p>
           </li>
         ))}
       </ul>

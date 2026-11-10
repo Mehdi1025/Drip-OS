@@ -18,11 +18,11 @@ export function DualTrendChart({ title, data }: Props) {
         </h2>
         <div className="flex gap-3 text-[10px] font-bold uppercase">
           <span className="flex items-center gap-1">
-            <span className="inline-block h-3 w-3 border border-drip-ink bg-drip-volt" />
+            <span className="inline-block h-3 w-3 rounded-sm bg-drip-volt" />
             Commandes
           </span>
           <span className="flex items-center gap-1">
-            <span className="inline-block h-3 w-3 border border-drip-ink bg-drip-ink" />
+            <span className="inline-block h-3 w-3 rounded-sm bg-drip-success" />
             Expédiés
           </span>
         </div>
@@ -36,14 +36,14 @@ export function DualTrendChart({ title, data }: Props) {
           >
             <div className="flex h-24 w-full items-end justify-center gap-0.5 sm:h-32 sm:gap-1">
               <div
-                className="w-[42%] border-2 border-drip-ink bg-drip-volt"
+                className="w-[42%] rounded-t bg-drip-volt"
                 style={{
                   height: `${Math.max((day.orders / max) * 100, day.orders > 0 ? 8 : 0)}%`,
                 }}
                 title={`${day.orders} commande(s)`}
               />
               <div
-                className="w-[42%] border-2 border-drip-ink bg-drip-ink"
+                className="w-[42%] rounded-t bg-drip-success"
                 style={{
                   height: `${Math.max((day.shipped / max) * 100, day.shipped > 0 ? 8 : 0)}%`,
                 }}

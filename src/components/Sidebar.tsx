@@ -61,7 +61,7 @@ export function Sidebar() {
       <div className="shrink-0 border-b border-drip-border px-6 py-7">
         <div className="flex items-center gap-3">
           <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-volt shadow-glow-sm">
-            <span className="font-display text-sm font-bold text-drip-paper">
+            <span className="font-display text-sm font-bold text-white">
               D
             </span>
             <span className="absolute inset-0 rounded-xl ring-1 ring-white/20" />
@@ -148,7 +148,7 @@ function NavLink({
         <span className="truncate text-[11px] text-drip-muted">{description}</span>
       </span>
       {active && (
-        <span className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-drip-volt shadow-[0_0_8px_#d8ff52]" />
+        <span className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-drip-volt shadow-glow-sm" />
       )}
     </Link>
   );

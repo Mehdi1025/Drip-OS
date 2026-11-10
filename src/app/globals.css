@@ -4,9 +4,12 @@
 
 :root {
   color-scheme: dark;
-  --drip-paper: #060608;
-  --drip-ink: #f2f2f3;
-  --drip-volt: #d8ff52;
+  --drip-paper: #14121f;
+  --drip-ink: #f7f5f2;
+  --drip-volt: #5b2eff;
+  --drip-peach: #ff7a45;
+  --drip-lilac: #e4deff;
+  --drip-success: #4ade80;
   --drip-tab-bar-h: 4rem;
   --drip-scanner-dock-h: 5.25rem;
   --drip-mobile-top-h: 3.5rem;
@@ -118,7 +121,7 @@ body::before {
   }
 
   .drip-btn-volt {
-    @apply relative overflow-hidden rounded-xl border border-drip-volt/40 bg-gradient-volt font-display font-semibold tracking-tight text-drip-paper shadow-glow transition-all duration-200 hover:brightness-105 hover:shadow-glow active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none;
+    @apply relative overflow-hidden rounded-xl border border-drip-volt/50 bg-gradient-volt font-display font-semibold tracking-tight text-white shadow-glow transition-all duration-200 hover:brightness-105 hover:shadow-glow active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none;
   }
 
   .drip-empty {
@@ -142,7 +145,7 @@ body::before {
   }
 
   .drip-flash-ok {
-    @apply rounded-xl border border-drip-volt/30 bg-drip-volt/[0.1] px-4 py-3 text-sm text-drip-ink shadow-glow-sm;
+    @apply rounded-xl border border-drip-success/35 bg-drip-success/10 px-4 py-3 text-sm text-drip-ink shadow-[0_0_24px_-8px_rgba(74,222,128,0.35)];
   }
 
   .drip-flash-err {

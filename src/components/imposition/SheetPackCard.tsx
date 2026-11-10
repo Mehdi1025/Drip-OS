@@ -30,7 +30,7 @@ export function SheetPackCard({ sheetNumber, skins }: Props) {
             <div className="mb-2 flex items-center justify-between">
               <span className="drip-chip py-0.5 text-[10px]">S{index + 1}</span>
               {skin ? (
-                <span className="h-2 w-2 rounded-full bg-drip-volt shadow-[0_0_8px_#d8ff52]" />
+                <span className="h-2 w-2 rounded-full bg-drip-success shadow-[0_0_8px_rgba(74,222,128,0.55)]" />
               ) : (
                 <span className="h-2 w-2 rounded-full border border-drip-border" />
               )}
