@@ -3,13 +3,13 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: dark;
-  --drip-paper: #14121f;
-  --drip-ink: #f7f5f2;
+  color-scheme: light;
+  --drip-paper: #f7f5f2;
+  --drip-ink: #14121f;
   --drip-volt: #5b2eff;
   --drip-peach: #ff7a45;
   --drip-lilac: #e4deff;
-  --drip-success: #4ade80;
+  --drip-success: #22c55e;
   --drip-tab-bar-h: 4rem;
   --drip-scanner-dock-h: 5.25rem;
   --drip-mobile-top-h: 3.5rem;
@@ -22,16 +22,6 @@
 body {
   @apply bg-drip-paper text-drip-ink antialiased;
   -webkit-tap-highlight-color: transparent;
-}
-
-body::before {
-  content: "";
-  pointer-events: none;
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  opacity: 0.04;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 @layer components {
@@ -80,28 +70,28 @@ body::before {
   }
 
   .drip-header {
-    @apply drip-gutter-x relative border-b border-drip-border bg-drip-paper/80 py-8 backdrop-blur-xl sm:py-10;
+    @apply drip-gutter-x relative border-b border-drip-border bg-drip-paper py-8 sm:py-10;
   }
 
   .drip-header::after {
     content: "";
-    @apply absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-drip-volt/30 to-transparent;
+    @apply absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-drip-peach via-drip-volt to-drip-peach opacity-80;
   }
 
   .drip-kicker {
-    @apply font-sans text-[11px] font-medium uppercase tracking-[0.28em] text-drip-muted;
+    @apply text-[11px] font-bold uppercase tracking-[0.22em] text-drip-peach;
   }
 
   .drip-title {
-    @apply font-display mt-2 text-3xl font-semibold leading-[1.05] tracking-[-0.03em] text-drip-ink sm:text-4xl md:text-[2.75rem];
+    @apply font-display mt-2 text-3xl font-semibold lowercase leading-[1.05] tracking-[-0.02em] text-drip-ink sm:text-4xl md:text-[2.75rem];
   }
 
   .drip-card {
-    @apply rounded-2xl border border-drip-border bg-drip-surface shadow-panel backdrop-blur-md transition-colors duration-300 hover:border-drip-border-strong;
+    @apply rounded-2xl border border-drip-border bg-drip-surface shadow-panel transition-shadow duration-200 hover:shadow-float;
   }
 
   .drip-stat {
-    @apply shrink-0 rounded-xl border border-drip-border bg-drip-elevated/80 px-4 py-3 shadow-panel backdrop-blur-sm sm:px-5 sm:py-3.5;
+    @apply shrink-0 rounded-xl border border-drip-border bg-drip-surface px-4 py-3 shadow-panel sm:px-5 sm:py-3.5;
   }
 
   .drip-stat-row {
@@ -117,15 +107,15 @@ body::before {
   }
 
   .drip-stat-volt {
-    @apply rounded-xl border border-drip-volt/25 bg-drip-volt/[0.08] px-4 py-3 shadow-glow-sm;
+    @apply rounded-xl border border-drip-volt/20 bg-drip-lilac px-4 py-3;
   }
 
   .drip-btn-volt {
-    @apply relative overflow-hidden rounded-xl border border-drip-volt/50 bg-gradient-volt font-display font-semibold tracking-tight text-white shadow-glow transition-all duration-200 hover:brightness-105 hover:shadow-glow active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none;
+    @apply relative overflow-hidden rounded-full border-0 bg-gradient-volt font-sans text-sm font-bold tracking-tight text-white shadow-glow-sm transition-all duration-200 hover:shadow-glow active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45 disabled:shadow-none;
   }
 
   .drip-empty {
-    @apply rounded-2xl border border-dashed border-drip-border-strong bg-drip-surface/50 p-10 text-center backdrop-blur-sm sm:p-14;
+    @apply rounded-2xl border border-dashed border-drip-border-strong bg-drip-surface p-10 text-center sm:p-14;
   }
 
   .drip-touch {
@@ -141,18 +131,22 @@ body::before {
   }
 
   .drip-chip {
-    @apply inline-flex items-center gap-1.5 rounded-full border border-drip-border bg-drip-elevated/90 px-3 py-1 font-mono text-xs text-drip-muted;
+    @apply inline-flex items-center gap-1.5 rounded-full border border-drip-border bg-drip-paper px-3 py-1 font-mono text-xs text-drip-ink;
   }
 
   .drip-flash-ok {
-    @apply rounded-xl border border-drip-success/35 bg-drip-success/10 px-4 py-3 text-sm text-drip-ink shadow-[0_0_24px_-8px_rgba(74,222,128,0.35)];
+    @apply rounded-xl border border-drip-success/40 bg-emerald-50 px-4 py-3 text-sm text-drip-success-dark;
   }
 
   .drip-flash-err {
-    @apply rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200;
+    @apply rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800;
   }
 
   .drip-glass-nav {
-    @apply border border-drip-border bg-drip-elevated/75 shadow-float backdrop-blur-2xl;
+    @apply border border-drip-border bg-drip-surface/95 shadow-float backdrop-blur-md;
+  }
+
+  .drip-nav-active {
+    @apply bg-drip-lilac text-drip-ink ring-1 ring-drip-volt/20;
   }
 }

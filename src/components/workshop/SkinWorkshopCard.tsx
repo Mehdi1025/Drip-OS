@@ -20,7 +20,7 @@ export function SkinWorkshopCard({
 }: Props) {
   return (
     <article className="drip-card flex min-h-[280px] flex-col overflow-hidden">
-      <header className="border-b border-drip-border bg-drip-volt/[0.08] px-4 py-3">
+      <header className="border-b border-drip-border bg-drip-lilac px-4 py-3">
         <div className="flex items-center justify-between gap-2">
           <span className="drip-chip font-mono text-sm">{slotLabel}</span>
           <span className="font-mono text-xs text-drip-muted">

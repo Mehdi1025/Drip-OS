@@ -12,7 +12,7 @@ export function SheetPackCard({ sheetNumber, skins }: Props) {
 
   return (
     <article className="drip-card max-w-full overflow-hidden">
-      <header className="flex items-center justify-between border-b border-drip-border bg-drip-volt/[0.08] px-4 py-3">
+      <header className="flex items-center justify-between border-b border-drip-border bg-drip-lilac px-4 py-3">
         <span className="text-[11px] font-medium uppercase tracking-widest text-drip-muted">
           Feuille
         </span>
@@ -25,7 +25,7 @@ export function SheetPackCard({ sheetNumber, skins }: Props) {
         {bySlot.map((skin, index) => (
           <div
             key={slotKey(sheetNumber, index)}
-            className="min-h-[124px] bg-drip-elevated/90 p-3"
+            className="min-h-[124px] bg-drip-paper p-3"
           >
             <div className="mb-2 flex items-center justify-between">
               <span className="drip-chip py-0.5 text-[10px]">S{index + 1}</span>

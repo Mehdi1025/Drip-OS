@@ -16,7 +16,7 @@ export function StatBadge({ label, value, variant = "default" }: Props) {
     variant === "volt"
       ? "text-drip-volt"
       : variant === "danger"
-        ? "text-red-300"
+        ? "text-red-600"
         : "text-drip-ink";
 
   return (

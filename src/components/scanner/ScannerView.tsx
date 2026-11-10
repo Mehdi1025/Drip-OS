@@ -220,14 +220,14 @@ export function ScannerView() {
 
         {displayLabel && skin && (
           <section
-            className="rounded-2xl border border-emerald-500/35 bg-emerald-500/10 px-4 py-6 shadow-glow-sm"
+            className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-6"
             data-testid="scan-result"
           >
-            <p className="text-[10px] font-medium uppercase tracking-widest text-emerald-300/80">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-drip-success-dark">
               Colis identifié
             </p>
             <p
-              className="font-display mt-3 break-words text-2xl font-medium leading-tight text-emerald-50 sm:text-3xl md:text-4xl"
+              className="font-display mt-3 break-words text-2xl font-medium lowercase leading-tight text-drip-ink sm:text-3xl md:text-4xl"
               data-testid="scan-display-label"
             >
               {displayLabel}

@@ -27,7 +27,7 @@ export function ScrapModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 backdrop-blur-sm sm:items-center"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-drip-ink/40 p-4 backdrop-blur-sm sm:items-center"
       role="dialog"
       aria-modal="true"
       aria-labelledby="scrap-modal-title"
@@ -65,7 +65,7 @@ export function ScrapModal({
               type="button"
               disabled={loading}
               onClick={() => onConfirm(value)}
-              className="w-full rounded-xl border border-red-500/30 bg-red-500/15 py-4 text-base font-medium text-red-100 transition hover:bg-red-500/25 disabled:opacity-50"
+              className="w-full rounded-full border border-red-200 bg-red-50 py-4 text-base font-bold text-red-800 transition hover:bg-red-100 disabled:opacity-50"
             >
               {label}
             </button>

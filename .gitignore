@@ -22,6 +22,11 @@ public/fallback-*.js
 # production
 /build
 
+# analyses locales (ne pas versionner)
+_theme_analysis/
+_worldmonitor_analysis/
+_wm_*.css
+
 # misc
 .DS_Store
 *.pem
