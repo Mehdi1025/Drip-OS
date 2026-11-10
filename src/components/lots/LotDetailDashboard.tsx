@@ -26,6 +26,7 @@ import { StatBadge } from "@/components/layout/StatBadge";
 import type { LotDetailData, LotDetailSheet } from "@/lib/lots/types";
 import { ScrapModal } from "@/components/workshop/ScrapModal";
 import type { ScrapReasonValue } from "@/lib/workshop/scrap-reasons";
+import { uploadPlanchePdfsForLot } from "@/lib/lots/upload-client";
 import { FILE_STATUS, lotProgressSummary, SKIN_STATUS } from "./lot-ui";
 
 type Props = {
@@ -98,41 +99,29 @@ export function LotDetailDashboard({ initial }: Props) {
 
   function uploadFiles(files: FileList | null) {
     if (!files?.length) return;
-    const form = new FormData();
-    for (const file of Array.from(files)) {
-      form.append("file", file);
+    const list = Array.from(files).filter((f) =>
+      f.name.toLowerCase().endsWith(".pdf")
+    );
+    if (!list.length) {
+      notify("err", "Aucun PDF sélectionné.");
+      return;
     }
     startTransition(async () => {
       try {
-        const response = await fetch(
-          `/api/lots/${encodeURIComponent(lot.lotId)}/upload-bulk`,
-          { method: "POST", body: form }
+        const { uploaded, rejected } = await uploadPlanchePdfsForLot(
+          lot.lotId,
+          list
         );
-        const res = (await response.json().catch(() => null)) as {
-          ok?: boolean;
-          error?: string;
-          uploaded?: number;
-          rejected?: string[];
-        } | null;
 
-        if (!res) {
-          notify("err", "Réponse serveur invalide (fichier trop lourd ?).");
-          return;
-        }
-
-        if (!response.ok || !res.ok) {
-          const detail =
-            res.error ??
-            (res.rejected?.length ? res.rejected.join(" · ") : null) ??
-            `HTTP ${response.status}`;
-          notify("err", detail);
+        if (uploaded === 0) {
+          notify("err", rejected.join(" · ") || "Aucun fichier déposé.");
           return;
         }
 
         notify(
           "ok",
-          `Étape 2 — ${res.uploaded ?? 0} PDF déposé(s). Imprime puis passe à « J'ai imprimé ».` +
-            (res.rejected?.length ? ` Refus : ${res.rejected.join(" · ")}` : "")
+          `Étape 2 — ${uploaded} PDF déposé(s) (upload direct Storage). Imprime puis passe à « J'ai imprimé ».` +
+            (rejected.length ? ` Refus : ${rejected.join(" · ")}` : "")
         );
         refresh();
       } catch {
@@ -320,7 +309,7 @@ export function LotDetailDashboard({ initial }: Props) {
         >
           <StepHeader n={2} title="Déposer les PDF" active={summary.needsUpload} />
           <p className="mt-2 text-sm text-drip-muted">
-            Nomme chaque fichier :{" "}
+            Upload direct (pas de limite Vercel). Nomme chaque fichier :{" "}
             <span className="font-mono text-drip-ink">F1.pdf</span>,{" "}
             <span className="font-mono text-drip-ink">
               {lot.lotId}_F1.pdf

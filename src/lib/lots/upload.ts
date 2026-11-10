@@ -2,8 +2,6 @@ import { insertLotEvent } from "@/lib/lots/events";
 import { sheetCodeFromIndex, storageObjectPath } from "@/lib/lots/sheet-code";
 import { createSupabaseAdmin } from "@/lib/supabase/admin";
 
-const MAX_BYTES = 50 * 1024 * 1024;
-
 export async function resolveSheetByCode(
   lotId: string,
   sheetCode: string
@@ -25,19 +23,75 @@ export async function resolveSheetByCode(
   return data;
 }
 
+export type SignedPlancheUploadUrl = {
+  path: string;
+  token: string;
+  signedUrl: string;
+};
+
+export async function createSignedPlancheUploadUrl(
+  pdfPath: string
+): Promise<SignedPlancheUploadUrl> {
+  const supabase = createSupabaseAdmin();
+  const { data, error } = await supabase.storage
+    .from("planches")
+    .createSignedUploadUrl(pdfPath, { upsert: true });
+
+  if (error || !data?.path || !data.token) {
+    console.error("[upload] signed upload url", error);
+    throw new Error(
+      error?.message?.includes("Bucket not found")
+        ? "Bucket « planches » absent — migration 007 + Storage."
+        : "URL d'upload signée indisponible."
+    );
+  }
+
+  return {
+    path: data.path,
+    token: data.token,
+    signedUrl: data.signedUrl,
+  };
+}
+
+export async function finalizePlancheUpload(
+  lotId: string,
+  sheetId: string,
+  sheetCode: string,
+  pdfPath: string,
+  pngPath: string | null
+): Promise<void> {
+  const supabase = createSupabaseAdmin();
+
+  const { error: rpcError } = await supabase.rpc("upload_planche_sheet", {
+    p_sheet_id: sheetId,
+    p_file_path: pdfPath,
+    p_png_path: pngPath,
+  });
+
+  if (rpcError) {
+    console.error("[upload] rpc", rpcError);
+    const rpcHint = rpcError.message?.includes("upload_planche_sheet")
+      ? " Exécute la migration 007 (RPC + colonnes)."
+      : "";
+    throw new Error(
+      `Échec mise à jour feuille : ${rpcError.message}.${rpcHint}`
+    );
+  }
+
+  await insertLotEvent(lotId, "upload", {
+    sheet_id: sheetId,
+    sheet_code: sheetCode,
+    pdf_path: pdfPath,
+    png_path: pngPath,
+  });
+}
+
 export async function uploadPlancheFiles(
   lotId: string,
   sheetId: string,
   pdf: Buffer,
   png?: Buffer | null
 ): Promise<void> {
-  if (pdf.length > MAX_BYTES) {
-    throw new Error("PDF trop volumineux (max 50 Mo).");
-  }
-  if (png && png.length > MAX_BYTES) {
-    throw new Error("PNG trop volumineux (max 50 Mo).");
-  }
-
   const supabase = createSupabaseAdmin();
 
   const { data: sheet, error: sheetError } = await supabase
@@ -85,28 +139,7 @@ export async function uploadPlancheFiles(
     }
   }
 
-  const { error: rpcError } = await supabase.rpc("upload_planche_sheet", {
-    p_sheet_id: sheetId,
-    p_file_path: pdfPath,
-    p_png_path: pngPath,
-  });
-
-  if (rpcError) {
-    console.error("[upload] rpc", rpcError);
-  const rpcHint = rpcError.message?.includes("upload_planche_sheet")
-    ? " Exécute la migration 007 (RPC + colonnes)."
-    : "";
-    throw new Error(
-      `Échec mise à jour feuille : ${rpcError.message}.${rpcHint}`
-    );
-  }
-
-  await insertLotEvent(lotId, "upload", {
-    sheet_id: sheetId,
-    sheet_code: sheetCode,
-    pdf_path: pdfPath,
-    png_path: pngPath,
-  });
+  await finalizePlancheUpload(lotId, sheetId, sheetCode, pdfPath, pngPath);
 }
 
 export async function createSignedPlancheUrl(

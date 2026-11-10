@@ -5,6 +5,7 @@ import type { ScannedSkinPayload } from "@/lib/scanner/types";
 import {
   isLikelyTrackCode,
   normalizeTrackCode,
+  parseOrderTrackPrefixFromScan,
   parseShopifyOrderIdFromScan,
 } from "@/lib/scanner/track-code";
 import { isShopifyAdminConfigured } from "@/lib/shopify/admin-config";
@@ -129,10 +130,63 @@ async function fetchSkinByTrackCodeInner(
     };
   }
 
+  const trackPrefix = parseOrderTrackPrefixFromScan(trackCode);
+  if (trackPrefix) {
+    const { data: prefixRows, error: prefixError } = await supabase
+      .from("skins")
+      .select(
+        `
+        id,
+        design_name,
+        track_code,
+        status,
+        orders (
+          id,
+          id_shopify,
+          customer_name,
+          shipping_method
+        )
+      `
+      )
+      .like("track_code", `${trackPrefix}-F%`)
+      .order("track_code", { ascending: true });
+
+    if (prefixError) {
+      console.error("[scanner] skins by track prefix", prefixError);
+      return { ok: false, error: "Erreur base de données." };
+    }
+
+    if (!prefixRows?.length) {
+      return {
+        ok: false,
+        error: `Aucun skin avec le préfixe ${trackPrefix}. Ce n'est pas le # commande Shopify (#8792) : utilise le track code exact du CSV lot (ex. 1015-F1-S1).`,
+      };
+    }
+
+    const firstOrder = prefixRows[0].orders;
+    const orderRecord = Array.isArray(firstOrder) ? firstOrder[0] : firstOrder;
+    if (!orderRecord) {
+      return { ok: false, error: "Commande associée introuvable." };
+    }
+
+    const orderSkins = prefixRows.map((row) => mapSkinRow(row, orderRecord));
+    const primary =
+      orderSkins.find((s) => s.status === "cut") ??
+      orderSkins.find((s) => s.status !== "shipped" && s.status !== "scrap") ??
+      orderSkins[0];
+
+    return {
+      ok: true,
+      skin: primary,
+      displayLabel: buildScanDisplayLabel(primary),
+      orderSkins,
+    };
+  }
+
   if (!isLikelyTrackCode(trackCode)) {
     return {
       ok: false,
-      error: `Format inconnu. Utilise un track code (ex. 1042-F1-S1) ou l'ID Shopify commande.`,
+      error: `Format inconnu. Utilise un track code exact (ex. 1015-F1-S1, colonne track_code du CSV lot), pas le libellé #8792 ni l'ID lot L-261110-02. ID Shopify complet (10+ chiffres) accepté.`,
     };
   }
 

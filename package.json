@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test:scanner": "npx tsx src/lib/scanner/display-label.test.ts",
+    "test:scanner": "npx tsx src/lib/scanner/track-code.test.ts && npx tsx src/lib/scanner/display-label.test.ts",
     "test:inventory": "npx tsx src/lib/inventory/consume.test.ts",
     "icons": "node scripts/generate-pwa-icons.mjs"
   },
