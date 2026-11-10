@@ -51,6 +51,15 @@ function mapSkinRow(
 
 export type ShipSkinResult =
   | { ok: true; shopifySynced?: boolean; shopifyWarning?: string }
+  | { ok: false; error: string; trackCode?: string };
+
+export type ShipBatchResult =
+  | {
+      ok: true;
+      shipped: number;
+      failed: { skinId: string; trackCode: string; error: string }[];
+      shopifyWarnings: string[];
+    }
   | { ok: false; error: string };
 
 export async function fetchSkinByTrackCode(
@@ -255,6 +264,58 @@ export async function markSkinShipped(skinId: string): Promise<ShipSkinResult> {
   }
 }
 
+export async function markSkinsShipped(
+  skinIds: string[]
+): Promise<ShipBatchResult> {
+  try {
+    const unique = Array.from(
+      new Set(skinIds.map((id) => id.trim()).filter(Boolean))
+    );
+    if (unique.length === 0) {
+      return { ok: false, error: "Aucun skin sélectionné." };
+    }
+
+    let shipped = 0;
+    const failed: { skinId: string; trackCode: string; error: string }[] = [];
+    const shopifyWarnings: string[] = [];
+
+    for (const skinId of unique) {
+      const result = await markSkinShippedInner(skinId);
+      if (result.ok) {
+        shipped += 1;
+        if (result.shopifyWarning) {
+          shopifyWarnings.push(result.shopifyWarning);
+        }
+      } else {
+        failed.push({
+          skinId,
+          trackCode: result.trackCode ?? skinId,
+          error: result.error,
+        });
+      }
+    }
+
+    if (shipped === 0) {
+      return {
+        ok: false,
+        error:
+          failed.map((f) => `${f.trackCode} : ${f.error}`).join(" · ") ||
+          "Aucune expédition effectuée.",
+      };
+    }
+
+    return {
+      ok: true,
+      shipped,
+      failed,
+      shopifyWarnings: Array.from(new Set(shopifyWarnings)),
+    };
+  } catch (e) {
+    console.error("[scanner] markSkinsShipped", e);
+    return { ok: false, error: "Erreur serveur lors de l'expédition." };
+  }
+}
+
 async function markSkinShippedInner(skinId: string): Promise<ShipSkinResult> {
   if (!skinId?.trim()) {
     return { ok: false, error: "Skin invalide." };
@@ -284,26 +345,39 @@ async function markSkinShippedInner(skinId: string): Promise<ShipSkinResult> {
   }
 
   if (existing.status === "shipped") {
-    return { ok: false, error: "Déjà expédié." };
+    return { ok: false, error: "Déjà expédié.", trackCode: existing.track_code };
   }
 
   if (existing.status === "scrap") {
-    return { ok: false, error: "Mis au rebut." };
+    return {
+      ok: false,
+      error: "Mis au rebut.",
+      trackCode: existing.track_code,
+    };
   }
 
   if (existing.status === "planche_prete" || existing.status === "printed") {
-    return { ok: false, error: "Pas encore découpé." };
+    return {
+      ok: false,
+      error: "Pas encore découpé.",
+      trackCode: existing.track_code,
+    };
   }
 
   if (existing.status === "imposed" || existing.status === "pending") {
     return {
       ok: false,
       error: "Production incomplète — imposition / découpe requises.",
+      trackCode: existing.track_code,
     };
   }
 
   if (existing.status !== SHIPPABLE_STATUS) {
-    return { ok: false, error: "Code inconnu ou statut incompatible." };
+    return {
+      ok: false,
+      error: "Code inconnu ou statut incompatible.",
+      trackCode: existing.track_code,
+    };
   }
 
   const { data: updated, error } = await supabase

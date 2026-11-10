@@ -3,11 +3,12 @@
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { ArrowLeft, Keyboard, PackageCheck } from "lucide-react";
+import { ArrowLeft, Check, Keyboard, PackageCheck, Square } from "lucide-react";
 import {
   fetchSkinByTrackCode,
-  markSkinShipped,
+  markSkinsShipped,
 } from "@/app/scanner/actions";
+import { buildScanDisplayLabel } from "@/lib/scanner/display-label";
 import type { CameraErrorCopy } from "@/lib/scanner/camera-error-message";
 import type { ScannedSkinPayload } from "@/lib/scanner/types";
 import { normalizeTrackCode } from "@/lib/scanner/track-code";
@@ -28,11 +29,18 @@ const BarcodeScanner = dynamic(
 const SCAN_COOLDOWN_MS = 1500;
 const FLASH_MS = 700;
 
+function cutSkinIds(skins: ScannedSkinPayload[]): Set<string> {
+  return new Set(
+    skins.filter((s) => s.status === "cut").map((s) => s.skinId)
+  );
+}
+
 export function ScannerView() {
   const [skin, setSkin] = useState<ScannedSkinPayload | null>(null);
   const [orderSkins, setOrderSkins] = useState<ScannedSkinPayload[] | null>(
     null
   );
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [displayLabel, setDisplayLabel] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
   const [cameraNotice, setCameraNotice] = useState<CameraErrorCopy | null>(
@@ -45,6 +53,7 @@ export function ScannerView() {
   const [isFetching, startFetch] = useTransition();
   const [isShipping, startShip] = useTransition();
   const lastScanRef = useRef<{ code: string; at: number } | null>(null);
+  const lastTrackRef = useRef<string | null>(null);
 
   const handleCameraBlocked = useCallback((copy: CameraErrorCopy) => {
     setCameraNotice(copy);
@@ -54,6 +63,24 @@ export function ScannerView() {
   const handleCameraReady = useCallback(() => {
     setCameraNotice(null);
   }, []);
+
+  const applyScanResult = useCallback(
+    (result: {
+      skin: ScannedSkinPayload;
+      displayLabel: string;
+      orderSkins?: ScannedSkinPayload[];
+    }) => {
+      const siblings = result.orderSkins ?? [result.skin];
+      setSkin(result.skin);
+      setDisplayLabel(result.displayLabel);
+      setOrderSkins(siblings.length > 1 ? siblings : null);
+      setSelectedIds(cutSkinIds(siblings));
+      lastTrackRef.current = result.skin.trackCode;
+      setFlash(true);
+      setCameraPaused(true);
+    },
+    []
+  );
 
   const resolveCode = useCallback((raw: string) => {
     const code = normalizeTrackCode(raw);
@@ -75,19 +102,16 @@ export function ScannerView() {
           setSkin(null);
           setDisplayLabel(null);
           setOrderSkins(null);
+          setSelectedIds(new Set());
           return;
         }
 
-        setSkin(result.skin);
-        setDisplayLabel(result.displayLabel);
-        setOrderSkins(result.orderSkins ?? null);
-        setFlash(true);
-        setCameraPaused(true);
+        applyScanResult(result);
       } catch {
         setApiError("Erreur réseau lors de la lecture du code.");
       }
     });
-  }, []);
+  }, [applyScanResult]);
 
   useEffect(() => {
     if (!flash) return;
@@ -95,32 +119,104 @@ export function ScannerView() {
     return () => window.clearTimeout(timer);
   }, [flash]);
 
-  function handleShipped() {
-    if (!skin) return;
+  function toggleSkinSelection(skinId: string, shippable: boolean) {
+    if (!shippable) return;
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(skinId)) next.delete(skinId);
+      else next.add(skinId);
+      return next;
+    });
+  }
+
+  function selectAllCut() {
+    const list = orderSkins ?? (skin ? [skin] : []);
+    setSelectedIds(cutSkinIds(list));
+  }
+
+  function clearSelection() {
+    setSelectedIds(new Set());
+  }
+
+  function resetScanner() {
+    setSkin(null);
+    setDisplayLabel(null);
+    setOrderSkins(null);
+    setSelectedIds(new Set());
+    setCameraPaused(false);
+    lastScanRef.current = null;
+    lastTrackRef.current = null;
+  }
+
+  function handleShipSelected() {
+    const ids = Array.from(selectedIds);
+    if (!ids.length) return;
+
     setApiError(null);
-    const skinId = skin.skinId;
     startShip(async () => {
       try {
-        const result = await markSkinShipped(skinId);
+        const result = await markSkinsShipped(ids);
         if (!result.ok) {
           setApiError(result.error);
           return;
         }
-        if (result.shopifyWarning) {
-          setApiError(result.shopifyWarning);
+
+        const parts: string[] = [];
+        if (result.shipped > 0) {
+          parts.push(
+            `${result.shipped} skin${result.shipped > 1 ? "s" : ""} expédié${result.shipped > 1 ? "s" : ""}.`
+          );
         }
-        setSkin(null);
-        setDisplayLabel(null);
-        setOrderSkins(null);
-        setCameraPaused(false);
-        lastScanRef.current = null;
+        if (result.failed.length) {
+          parts.push(
+            `Non expédié : ${result.failed
+              .map((f) => `${f.trackCode} (${f.error})`)
+              .join(" · ")}`
+          );
+        }
+        if (result.shopifyWarnings.length) {
+          parts.push(result.shopifyWarnings.join(" · "));
+        }
+        if (parts.length) {
+          setApiError(parts.join(" "));
+        }
+
+        const refreshCode = lastTrackRef.current ?? skin?.trackCode;
+        if (refreshCode) {
+          const refresh = await fetchSkinByTrackCode(refreshCode);
+          if (refresh.ok) {
+            const siblings = refresh.orderSkins ?? [refresh.skin];
+            const remainingCut = siblings.filter((s) => s.status === "cut");
+            if (remainingCut.length === 0) {
+              resetScanner();
+              return;
+            }
+            applyScanResult({
+              ...refresh,
+              skin: remainingCut[0] ?? refresh.skin,
+              displayLabel: buildScanDisplayLabel(
+                remainingCut[0] ?? refresh.skin
+              ),
+            });
+            return;
+          }
+        }
+
+        if (result.failed.length === 0) {
+          resetScanner();
+        }
       } catch {
         setApiError("Impossible de contacter le serveur. Réessaie.");
       }
     });
   }
 
-  const canShip = skin?.status === "cut" && !isShipping;
+  const listForSelection = orderSkins ?? (skin ? [skin] : []);
+  const selectedCutCount = listForSelection.filter(
+    (s) => selectedIds.has(s.skinId) && s.status === "cut"
+  ).length;
+  const cutCount = listForSelection.filter((s) => s.status === "cut").length;
+  const canShip = selectedCutCount > 0 && !isShipping;
 
   const orderProgress =
     orderSkins && orderSkins.length > 0
@@ -242,7 +338,7 @@ export function ScannerView() {
             <p className="mt-1 text-sm font-bold uppercase text-[#bbf7d0]/80">
               {skin.customerName} · {skin.shippingMethod}
             </p>
-            {skin.status !== "cut" && (
+            {cutCount === 0 && skin.status !== "cut" && (
               <p className="mt-3 text-sm font-bold text-amber-300">
                 Statut : {skin.status} — expédition possible uniquement après
                 découpe (statut cut).
@@ -251,36 +347,78 @@ export function ScannerView() {
             {orderProgress && (
               <p className="mt-3 text-sm font-medium text-[#bbf7d0]">
                 Commande #{skin.orderShopifyId} : {orderProgress.shipped}/
-                {orderProgress.total} skins scannés
+                {orderProgress.total} skins expédiés
                 {orderComplete ? " · Commande complète" : ""}
               </p>
             )}
-            {orderSkins && orderSkins.length > 1 && (
+            {listForSelection.length > 0 && (
               <div className="mt-4 space-y-2 border-t border-[#86efac]/40 pt-4">
-                <p className="text-[10px] font-black uppercase tracking-widest text-[#bbf7d0]">
-                  {orderSkins.length} skins — choisir celui à expédier
-                </p>
-                <ul className="flex flex-col gap-2">
-                  {orderSkins.map((s) => (
-                    <li key={s.skinId}>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-[#bbf7d0]">
+                    {listForSelection.length > 1
+                      ? `${listForSelection.length} skins — sélection expédition`
+                      : "Skin à expédier"}
+                  </p>
+                  {cutCount > 1 && (
+                    <div className="flex gap-2">
                       <button
                         type="button"
-                        onClick={() => {
-                          setSkin(s);
-                          setDisplayLabel(
-                            `${s.designName} · ${s.trackCode} · ${s.status}`
-                          );
-                        }}
-                        className={`w-full border-2 px-3 py-2 text-left font-mono text-xs ${
-                          s.skinId === skin.skinId
-                            ? "border-[#ccff00] bg-[#166534]"
-                            : "border-[#86efac]/50 bg-[#14532d]/80"
-                        }`}
+                        onClick={selectAllCut}
+                        className="text-[10px] font-bold uppercase text-[#ccff00] underline"
                       >
-                        {s.designName} — {s.trackCode} ({s.status})
+                        Tout ({cutCount})
                       </button>
-                    </li>
-                  ))}
+                      <button
+                        type="button"
+                        onClick={clearSelection}
+                        className="text-[10px] font-bold uppercase text-[#bbf7d0]/80 underline"
+                      >
+                        Aucun
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <ul className="flex flex-col gap-2">
+                  {listForSelection.map((s) => {
+                    const shippable = s.status === "cut";
+                    const checked = selectedIds.has(s.skinId);
+                    return (
+                      <li key={s.skinId}>
+                        <button
+                          type="button"
+                          disabled={!shippable}
+                          onClick={() => {
+                            toggleSkinSelection(s.skinId, shippable);
+                            setSkin(s);
+                            setDisplayLabel(buildScanDisplayLabel(s));
+                          }}
+                          className={`flex w-full items-start gap-3 border-2 px-3 py-2 text-left ${
+                            s.skinId === skin.skinId
+                              ? "border-[#ccff00] bg-[#166534]"
+                              : "border-[#86efac]/50 bg-[#14532d]/80"
+                          } ${!shippable ? "opacity-60" : ""}`}
+                        >
+                          <span className="mt-0.5 shrink-0 text-[#ccff00]">
+                            {shippable && checked ? (
+                              <Check className="h-5 w-5" strokeWidth={3} />
+                            ) : (
+                              <Square
+                                className="h-5 w-5"
+                                strokeWidth={2}
+                                fill={
+                                  shippable && checked ? "#ccff00" : "transparent"
+                                }
+                              />
+                            )}
+                          </span>
+                          <span className="font-mono text-xs">
+                            {s.designName} — {s.trackCode}{" "}
+                            <span className="opacity-80">({s.status})</span>
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             )}
@@ -299,12 +437,18 @@ export function ScannerView() {
           <button
             type="button"
             disabled={!canShip}
-            onClick={handleShipped}
+            onClick={handleShipSelected}
             className="drip-btn-volt drip-touch flex w-full min-h-[56px] items-center justify-center gap-3 text-base disabled:opacity-40 sm:min-h-[64px] sm:text-lg"
             data-testid="mark-shipped-cta"
           >
             <PackageCheck className="h-8 w-8" strokeWidth={3} />
-            {isShipping ? "Envoi…" : "Marquer Expédié"}
+            {isShipping
+              ? "Envoi…"
+              : selectedCutCount > 1
+                ? `Marquer ${selectedCutCount} expédiés`
+                : selectedCutCount === 1
+                  ? "Marquer expédié"
+                  : "Marquer expédié"}
           </button>
         </div>
       </div>
