@@ -60,15 +60,10 @@ export function Sidebar() {
   return (
     <aside className="sticky top-0 z-30 hidden h-[100dvh] w-[17rem] shrink-0 flex-col border-r border-drip-border bg-drip-surface md:flex">
       <div className="shrink-0 border-b border-drip-border px-6 py-7">
-        <div className="flex items-center gap-3">
-          <BrandMark size={40} className="shrink-0 rounded-xl shadow-glow-sm" />
-          <div>
-            <p className="font-display text-lg font-semibold lowercase tracking-tight text-drip-ink">
-              dripos
-            </p>
-            <p className="text-[11px] text-drip-muted">production · dmc</p>
-          </div>
-        </div>
+        <Link href="/imposition" className="block">
+          <BrandMark variant="full" />
+          <p className="mt-2 text-[11px] text-drip-muted">drip os · production</p>
+        </Link>
       </div>
 
       <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto p-4">
