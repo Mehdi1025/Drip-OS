@@ -32,7 +32,7 @@ export function parseSheetCodeFromFilename(
 
   const simple = name.match(/(F\d+)/i);
   if (simple?.[1]) {
-    return `F${simple[1].slice(1)}`.replace(/^FF/, "F");
+    return simple[1].toUpperCase();
   }
 
   return null;

@@ -20,13 +20,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const rejected: string[] = [];
     let uploaded = 0;
 
-    for (const [key, value] of Array.from(form.entries())) {
+    for (const [, value] of Array.from(form.entries())) {
       if (!(value instanceof Blob)) continue;
-      if (!key.startsWith("file") && key !== "pdf") continue;
       const name =
-        typeof (value as File).name === "string"
-          ? (value as File).name
-          : key;
+        value instanceof File && value.name
+          ? value.name
+          : "upload.pdf";
 
       const sheetCode = parseSheetCodeFromFilename(name, lotId);
       if (!sheetCode) {
@@ -41,7 +40,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       }
 
       const buffer = Buffer.from(await value.arrayBuffer());
-      const isPdf = name.toLowerCase().endsWith(".pdf") || key === "pdf";
+      const isPdf =
+        name.toLowerCase().endsWith(".pdf") ||
+        value.type === "application/pdf";
       if (!isPdf) {
         rejected.push(`${name} : PDF requis par fichier`);
         continue;

@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useCallback, useState, useTransition } from "react";
 import { Download, Lock, Upload } from "lucide-react";
 import {
-  bulkUploadPlanches,
   exportLotFromUi,
   fetchLotDetail,
   getSignedFileUrl,
@@ -78,30 +77,57 @@ export function LotDetailDashboard({ initial }: Props) {
 
   async function handleFiles(files: FileList | null) {
     if (!files?.length) return;
-    const payload: { name: string; data: Uint8Array }[] = [];
+    const form = new FormData();
     for (const file of Array.from(files)) {
-      payload.push({
-        name: file.name,
-        data: new Uint8Array(await file.arrayBuffer()),
-      });
+      form.append("file", file);
     }
     startTransition(async () => {
-      const res = await bulkUploadPlanches(lot.lotId, payload);
-      if (!res.ok) {
-        setFlash(res.error);
-        return;
+      try {
+        const response = await fetch(
+          `/api/lots/${encodeURIComponent(lot.lotId)}/upload-bulk`,
+          { method: "POST", body: form }
+        );
+        const res = (await response.json().catch(() => null)) as {
+          ok?: boolean;
+          error?: string;
+          uploaded?: number;
+          rejected?: string[];
+        } | null;
+
+        if (!res) {
+          setFlash("Réponse serveur invalide (fichier trop lourd ?).");
+          return;
+        }
+
+        if (!response.ok || !res.ok) {
+          const detail =
+            res.error ??
+            (res.rejected?.length ? res.rejected.join(" · ") : null) ??
+            `HTTP ${response.status}`;
+          setFlash(detail);
+          return;
+        }
+
+        setFlash(
+          `${res.uploaded ?? 0} planche(s) déposée(s).` +
+            (res.rejected?.length
+              ? ` Refus : ${res.rejected.join(" · ")}`
+              : "")
+        );
+        refresh();
+      } catch {
+        setFlash("Erreur réseau lors du dépôt des PDF.");
       }
-      setFlash(
-        `${res.uploaded} planche(s) déposée(s).` +
-          (res.rejected.length ? ` Refus : ${res.rejected.join(" · ")}` : "")
-      );
-      refresh();
     });
   }
 
   function handleMarkPrinted(sheetId: string) {
     startTransition(async () => {
       const res = await markSheetPrintedAction(lot.lotId, sheetId);
+      if (!res) {
+        setFlash("Échec serveur (marquer imprimée).");
+        return;
+      }
       setFlash(res.ok ? "Feuille marquée imprimée." : res.error);
       refresh();
     });

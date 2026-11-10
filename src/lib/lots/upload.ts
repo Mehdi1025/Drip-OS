@@ -63,7 +63,11 @@ export async function uploadPlancheFiles(
 
   if (pdfError) {
     console.error("[upload] pdf", pdfError);
-    throw new Error("Échec upload PDF.");
+    const hint =
+      pdfError.message?.includes("Bucket not found")
+        ? " Bucket « planches » absent — migration 007 + Storage."
+        : "";
+    throw new Error(`Échec upload PDF : ${pdfError.message}.${hint}`);
   }
 
   let pngPath: string | null = null;
@@ -89,7 +93,12 @@ export async function uploadPlancheFiles(
 
   if (rpcError) {
     console.error("[upload] rpc", rpcError);
-    throw new Error("Échec mise à jour feuille.");
+  const rpcHint = rpcError.message?.includes("upload_planche_sheet")
+    ? " Exécute la migration 007 (RPC + colonnes)."
+    : "";
+    throw new Error(
+      `Échec mise à jour feuille : ${rpcError.message}.${rpcHint}`
+    );
   }
 
   await insertLotEvent(lotId, "upload", {

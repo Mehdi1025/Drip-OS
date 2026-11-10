@@ -5,14 +5,18 @@ type GuardResult =
   | { ok: false; response: NextResponse };
 
 /**
- * Protège les routes API lot (Bearer DRIP_ADMIN_SECRET).
- * Sans secret configuré : accès autorisé (app interne / dev).
+ * Routes lot : Bearer DRIP_ADMIN_SECRET pour scripts externes.
+ * Sans en-tête Authorization (UI navigateur) → autorisé si l’app est déjà protégée.
  */
 export function requireLotApiAccess(
   authorization: string | null
 ): GuardResult {
   const secret = process.env.DRIP_ADMIN_SECRET?.trim();
   if (!secret) {
+    return { ok: true };
+  }
+
+  if (!authorization?.trim()) {
     return { ok: true };
   }
 
