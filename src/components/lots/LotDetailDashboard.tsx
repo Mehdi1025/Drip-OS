@@ -3,7 +3,15 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useState, useTransition } from "react";
-import { Download, Lock, Upload } from "lucide-react";
+import {
+  CheckCircle2,
+  ChevronRight,
+  Download,
+  Lock,
+  Printer,
+  ScanLine,
+  Upload,
+} from "lucide-react";
 import {
   exportLotFromUi,
   fetchLotDetail,
@@ -15,34 +23,40 @@ import {
 import { markSkinCut, markSkinScrap } from "@/app/workshop/actions";
 import { DashboardShell } from "@/components/layout/DashboardShell";
 import { StatBadge } from "@/components/layout/StatBadge";
-import type { LotDetailData } from "@/lib/lots/types";
+import type { LotDetailData, LotDetailSheet } from "@/lib/lots/types";
 import { ScrapModal } from "@/components/workshop/ScrapModal";
 import type { ScrapReasonValue } from "@/lib/workshop/scrap-reasons";
+import { FILE_STATUS, lotProgressSummary, SKIN_STATUS } from "./lot-ui";
 
 type Props = {
   initial: LotDetailData;
 };
 
-const FILE_STATUS_LABEL: Record<string, string> = {
-  attente_fichier: "Attente fichier",
-  planche_prete: "Planche prête",
-  imprimee: "Imprimée",
-};
+const STEPS = [
+  { n: 1, title: "Exporter", short: "CSV pour fabriquer les planches" },
+  { n: 2, title: "Déposer PDF", short: "Un fichier par feuille (F1, F2…)" },
+  { n: 3, title: "Imprimer", short: "Physique + « J'ai imprimé »" },
+  { n: 4, title: "Découper", short: "Contrôle OK sur chaque skin" },
+  { n: 5, title: "Expédier", short: "Scanner → Marquer expédié" },
+] as const;
 
 export function LotDetailDashboard({ initial }: Props) {
   const router = useRouter();
   const [lot, setLot] = useState(initial);
-  const [flash, setFlash] = useState<string | null>(null);
+  const [flash, setFlash] = useState<{
+    type: "ok" | "err";
+    text: string;
+  } | null>(null);
   const [scrapTarget, setScrapTarget] = useState<{
     id: string;
     name: string;
     track: string;
   } | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [dragOver, setDragOver] = useState(false);
 
-  const missingFiles = lot.sheets.filter(
-    (s) => s.fileStatus === "attente_fichier"
-  ).length;
+  const summary = lotProgressSummary(lot);
+  const missingFiles = lot.sheets.length - summary.withPdf;
 
   const refresh = useCallback(() => {
     startTransition(async () => {
@@ -51,6 +65,10 @@ export function LotDetailDashboard({ initial }: Props) {
       router.refresh();
     });
   }, [lot.lotId, router]);
+
+  function notify(type: "ok" | "err", text: string) {
+    setFlash({ type, text });
+  }
 
   function downloadBlob(content: string, filename: string, mime: string) {
     const blob = new Blob([content], { type: mime });
@@ -66,16 +84,19 @@ export function LotDetailDashboard({ initial }: Props) {
     startTransition(async () => {
       const res = await exportLotFromUi(lot.lotId, format);
       if (!res.ok) {
-        setFlash(res.error);
+        notify("err", res.error);
         return;
       }
       downloadBlob(res.content, res.filename, res.mime);
       refresh();
-      setFlash(`Export ${format.toUpperCase()} v${lot.exportVersion + 1} téléchargé.`);
+      notify(
+        "ok",
+        `Étape 1 OK — export ${format.toUpperCase()} (v${lot.exportVersion + 1}). Fabrique les planches puis dépose les PDF.`
+      );
     });
   }
 
-  async function handleFiles(files: FileList | null) {
+  function uploadFiles(files: FileList | null) {
     if (!files?.length) return;
     const form = new FormData();
     for (const file of Array.from(files)) {
@@ -95,7 +116,7 @@ export function LotDetailDashboard({ initial }: Props) {
         } | null;
 
         if (!res) {
-          setFlash("Réponse serveur invalide (fichier trop lourd ?).");
+          notify("err", "Réponse serveur invalide (fichier trop lourd ?).");
           return;
         }
 
@@ -104,31 +125,30 @@ export function LotDetailDashboard({ initial }: Props) {
             res.error ??
             (res.rejected?.length ? res.rejected.join(" · ") : null) ??
             `HTTP ${response.status}`;
-          setFlash(detail);
+          notify("err", detail);
           return;
         }
 
-        setFlash(
-          `${res.uploaded ?? 0} planche(s) déposée(s).` +
-            (res.rejected?.length
-              ? ` Refus : ${res.rejected.join(" · ")}`
-              : "")
+        notify(
+          "ok",
+          `Étape 2 — ${res.uploaded ?? 0} PDF déposé(s). Imprime puis passe à « J'ai imprimé ».` +
+            (res.rejected?.length ? ` Refus : ${res.rejected.join(" · ")}` : "")
         );
         refresh();
       } catch {
-        setFlash("Erreur réseau lors du dépôt des PDF.");
+        notify("err", "Erreur réseau lors du dépôt.");
       }
     });
   }
 
-  function handleMarkPrinted(sheetId: string) {
+  function handleMarkPrinted(sheetId: string, code: string) {
     startTransition(async () => {
       const res = await markSheetPrintedAction(lot.lotId, sheetId);
-      if (!res) {
-        setFlash("Échec serveur (marquer imprimée).");
+      if (!res?.ok) {
+        notify("err", res?.error ?? "Échec.");
         return;
       }
-      setFlash(res.ok ? "Feuille marquée imprimée." : res.error);
+      notify("ok", `${code} marquée imprimée — contrôle découpe ci-dessous.`);
       refresh();
     });
   }
@@ -136,7 +156,10 @@ export function LotDetailDashboard({ initial }: Props) {
   function handleMarkAllPrinted() {
     startTransition(async () => {
       const res = await markAllSheetsPrintedAction(lot.lotId);
-      setFlash(res.ok ? "Feuilles marquées imprimées." : res.error);
+      notify(
+        res.ok ? "ok" : "err",
+        res.ok ? "Toutes les planches prêtes sont marquées imprimées." : res.error
+      );
       refresh();
     });
   }
@@ -145,17 +168,22 @@ export function LotDetailDashboard({ initial }: Props) {
     startTransition(async () => {
       const res = await getSignedFileUrl(lot.lotId, sheetCode, "pdf");
       if (!res.ok) {
-        setFlash(res.error);
+        notify("err", res.error);
         return;
       }
       window.open(res.url, "_blank", "noopener,noreferrer");
     });
   }
 
-  function handleCut(skinId: string) {
+  function handleCut(skinId: string, track: string) {
     startTransition(async () => {
       const res = await markSkinCut(skinId);
-      setFlash(res.ok ? "Découpe validée." : res.error);
+      notify(
+        res.ok ? "ok" : "err",
+        res.ok
+          ? `${track} découpé — va dans Emballage / Scanner.`
+          : res.error
+      );
       refresh();
     });
   }
@@ -166,12 +194,13 @@ export function LotDetailDashboard({ initial }: Props) {
       const res = await markSkinScrap(scrapTarget.id, reason);
       setScrapTarget(null);
       if (!res.ok) {
-        setFlash(res.error);
+        notify("err", res.error);
         return;
       }
-      setFlash(
+      notify(
+        "ok",
         res.reprintCreated
-          ? "Rebut enregistré · réimpression ajoutée à la file."
+          ? "Rebut enregistré — réimpression dans la file Imposition."
           : "Rebut enregistré."
       );
       refresh();
@@ -181,9 +210,10 @@ export function LotDetailDashboard({ initial }: Props) {
   function handleRemoveCancelled(skinId: string) {
     startTransition(async () => {
       const res = await removeCancelledSkinFromSheet(lot.lotId, skinId);
-      setFlash(
+      notify(
+        res.ok ? "ok" : "err",
         res.ok
-          ? "Emplacement libéré — réexporte le lot et redépose la feuille."
+          ? "Emplacement libéré — réexporte le lot et redépose le PDF."
           : res.error
       );
       refresh();
@@ -196,208 +226,177 @@ export function LotDetailDashboard({ initial }: Props) {
 
   return (
     <DashboardShell
-      kicker="Lot · Planches"
+      kicker="Parcours lot"
       title={lot.lotId}
       stats={
         <>
-          <StatBadge label="Feuilles" value={lot.sheets.length} variant="volt" />
           <StatBadge
-            label="Sans fichier"
-            value={missingFiles}
-            variant={missingFiles > 0 ? "danger" : "default"}
+            label="Étape"
+            value={summary.currentStep}
+            variant="volt"
           />
-          <StatBadge label="Export v" value={lot.exportVersion} />
+          <StatBadge label="PDF déposés" value={summary.withPdf} />
+          <StatBadge
+            label="À expédier"
+            value={summary.skinsReadyScan}
+            variant={summary.skinsReadyScan > 0 ? "success" : "default"}
+          />
         </>
       }
     >
+      <WorkflowStrip current={summary.currentStep} />
+
       {flash && (
-        <p className="mb-4 rounded-xl border border-drip-border bg-drip-elevated px-4 py-3 text-sm">
-          {flash}
+        <p
+          className={`mb-4 rounded-xl border px-4 py-3 text-sm ${
+            flash.type === "ok"
+              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-900"
+              : "border-red-500/35 bg-red-500/10 text-red-900"
+          }`}
+        >
+          {flash.text}
         </p>
       )}
 
-      <div className="mb-6 flex flex-wrap items-center gap-3">
-        {lot.locked && (
-          <span className="flex items-center gap-1 rounded-full border border-drip-volt/30 bg-drip-volt/15 px-3 py-1 text-xs font-medium">
-            <Lock className="h-3.5 w-3.5" /> Figé
+      {summary.skinsReadyScan > 0 && (
+        <Link
+          href="/scanner"
+          className="mb-6 flex items-center justify-between gap-3 rounded-xl border border-emerald-500/35 bg-emerald-500/10 px-4 py-4 transition hover:border-emerald-500/50"
+        >
+          <span className="flex items-center gap-3 text-sm font-medium">
+            <ScanLine className="h-6 w-6 text-emerald-700" />
+            {summary.skinsReadyScan} skin(s) prêt(s) — ouvre le Scanner
           </span>
-        )}
-        <button
-          type="button"
-          disabled={isPending}
-          onClick={() => handleExport("csv")}
-          className="drip-btn-volt flex items-center gap-2 px-4 py-2 text-sm"
-        >
-          <Download className="h-4 w-4" />
-          Exporter le lot (CSV)
-        </button>
-        <button
-          type="button"
-          disabled={isPending}
-          onClick={() => handleExport("json")}
-          className="rounded-xl border border-drip-border px-4 py-2 text-sm font-medium"
-        >
-          Export JSON
-        </button>
-        <Link href="/workshop" className="text-sm text-drip-volt">
-          Atelier →
+          <ChevronRight className="h-5 w-5 text-emerald-700" />
         </Link>
-      </div>
+      )}
 
       {hasCancelBanner && (
-        <div className="mb-6 rounded-xl border border-red-500/35 bg-red-500/10 px-4 py-3 text-sm text-red-100">
-          Commande annulée sur un ou plusieurs emplacements. Retire le skin puis
-          réexporte le lot et redépose la feuille concernée.
+        <div className="mb-6 rounded-xl border border-red-500/35 bg-red-500/10 px-4 py-3 text-sm text-red-900">
+          Commande annulée sur un emplacement : retire le skin, réexporte le lot,
+          redépose le PDF.
         </div>
       )}
 
-      <div className="drip-card mb-8 border-dashed border-drip-volt/35 p-6">
-        <p className="text-xs font-medium uppercase tracking-widest text-drip-muted">
-          Déposer les planches
-        </p>
-        <p className="mt-1 text-sm text-drip-muted">
-          PDF nommés F1.pdf, L-{lot.lotId.slice(2)}_F1.pdf, etc.
-        </p>
-        <label className="mt-4 flex cursor-pointer flex-col items-center justify-center rounded-xl border border-drip-border bg-drip-paper px-4 py-8">
-          <Upload className="h-8 w-8 text-drip-volt" />
-          <span className="mt-2 text-sm font-medium">Glisser-déposer ou cliquer</span>
-          <input
-            type="file"
-            accept=".pdf,application/pdf"
-            multiple
-            className="sr-only"
-            onChange={(e) => handleFiles(e.target.files)}
-          />
-        </label>
-      </div>
+      <div className="mb-10 grid gap-6 lg:grid-cols-2">
+        <section className="drip-card p-5">
+          <StepHeader n={1} title="Exporter le lot" active={summary.needsExport} />
+          <p className="mt-2 text-sm text-drip-muted">
+            Télécharge le CSV pour créer les planches hors Drip OS. Le lot se{" "}
+            <strong className="text-drip-ink">fige</strong> au premier export.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {lot.locked && (
+              <span className="flex items-center gap-1 rounded-full border border-drip-volt/30 bg-drip-volt/10 px-2.5 py-1 text-[11px] font-medium">
+                <Lock className="h-3 w-3" /> Figé · v{lot.exportVersion}
+              </span>
+            )}
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() => handleExport("csv")}
+              className="drip-btn-volt flex min-h-[44px] flex-1 items-center justify-center gap-2 px-4 py-2.5 text-sm sm:flex-none"
+            >
+              <Download className="h-4 w-4" />
+              Télécharger CSV
+            </button>
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() => handleExport("json")}
+              className="min-h-[44px] rounded-xl border border-drip-border px-4 py-2.5 text-sm font-medium"
+            >
+              JSON
+            </button>
+          </div>
+        </section>
 
-      <div className="mb-4 flex flex-wrap justify-between gap-2">
-        <h2 className="text-sm font-medium text-drip-muted">Feuilles du lot</h2>
-        <button
-          type="button"
-          disabled={isPending}
-          onClick={handleMarkAllPrinted}
-          className="text-xs font-medium text-drip-volt"
+        <section
+          className={`drip-card border-2 p-5 transition ${
+            summary.needsUpload
+              ? "border-drip-volt/40 shadow-[0_0_0_1px_rgba(91,46,255,0.12)]"
+              : "border-transparent"
+          }`}
         >
-          Tout marquer imprimé
-        </button>
+          <StepHeader n={2} title="Déposer les PDF" active={summary.needsUpload} />
+          <p className="mt-2 text-sm text-drip-muted">
+            Nomme chaque fichier :{" "}
+            <span className="font-mono text-drip-ink">F1.pdf</span>,{" "}
+            <span className="font-mono text-drip-ink">
+              {lot.lotId}_F1.pdf
+            </span>
+            , etc. Plusieurs fichiers en une fois.
+          </p>
+          <label
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOver(true);
+            }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragOver(false);
+              uploadFiles(e.dataTransfer.files);
+            }}
+            className={`mt-4 flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-10 transition ${
+              dragOver
+                ? "border-drip-volt bg-drip-volt/10"
+                : "border-drip-border bg-drip-paper hover:border-drip-volt/40"
+            }`}
+          >
+            <Upload className="h-10 w-10 text-drip-volt" />
+            <span className="mt-3 text-center text-sm font-medium">
+              Glisser-déposer ou appuyer pour choisir
+            </span>
+            <input
+              type="file"
+              accept=".pdf,application/pdf"
+              multiple
+              className="sr-only"
+              onChange={(e) => uploadFiles(e.target.files)}
+            />
+          </label>
+        </section>
       </div>
 
-      <div className="space-y-4">
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="font-display text-lg font-medium">Feuilles du lot</h2>
+          <p className="text-sm text-drip-muted">
+            Étapes 3 et 4 — par feuille puis par skin (S1–S4).
+          </p>
+        </div>
+        {summary.needsPrintMark && (
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={handleMarkAllPrinted}
+            className="flex min-h-[44px] items-center gap-2 rounded-xl border border-drip-border px-4 text-sm font-medium"
+          >
+            <Printer className="h-4 w-4" />
+            Tout marquer imprimé
+          </button>
+        )}
+      </div>
+
+      <div className="space-y-5">
         {lot.sheets.map((sheet) => (
-          <article key={sheet.id} className="drip-card overflow-hidden">
-            <header className="flex flex-wrap items-center justify-between gap-2 border-b border-drip-border px-4 py-3">
-              <span className="font-mono text-lg font-semibold">
-                {sheet.sheetCode}
-              </span>
-              <span
-                className={`rounded-full px-2.5 py-1 text-[10px] font-medium ${
-                  sheet.fileStatus === "planche_prete"
-                    ? "bg-drip-volt/20 text-drip-ink"
-                    : sheet.fileStatus === "imprimee"
-                      ? "bg-emerald-500/20 text-emerald-700"
-                      : "bg-drip-border text-drip-muted"
-                }`}
-              >
-                {FILE_STATUS_LABEL[sheet.fileStatus] ?? sheet.fileStatus}
-              </span>
-            </header>
-            <div className="flex flex-wrap gap-2 border-b border-drip-border px-4 py-2">
-              <button
-                type="button"
-                disabled={!sheet.filePath || isPending}
-                onClick={() => handleOpenFile(sheet.sheetCode)}
-                className="text-xs font-medium text-drip-volt disabled:opacity-40"
-              >
-                Voir / Télécharger
-              </button>
-              <button
-                type="button"
-                disabled={
-                  sheet.fileStatus !== "planche_prete" || isPending
-                }
-                onClick={() => handleMarkPrinted(sheet.id)}
-                className="text-xs font-medium disabled:opacity-40"
-              >
-                Marquer imprimée
-              </button>
-              {sheet.fileUploadedAt && (
-                <span className="text-[10px] text-drip-muted">
-                  Déposé le{" "}
-                  {new Date(sheet.fileUploadedAt).toLocaleString("fr-FR")}
-                </span>
-              )}
-            </div>
-            <div className="grid gap-3 p-4 sm:grid-cols-2">
-              {sheet.slots.map((skin, idx) =>
-                skin ? (
-                  <div
-                    key={skin.id}
-                    className={`rounded-xl border p-3 ${
-                      skin.alert === "commande_annulee"
-                        ? "border-red-500/40 bg-red-500/10"
-                        : "border-drip-border bg-drip-surface"
-                    }`}
-                  >
-                    <p className="text-[10px] font-medium text-drip-muted">
-                      S{idx + 1} · {skin.track_code}
-                    </p>
-                    <p className="mt-1 font-medium">{skin.design_name}</p>
-                    <p className="text-xs text-drip-muted">{skin.status}</p>
-                    {skin.reprint_of && (
-                      <span className="mt-1 inline-block rounded bg-drip-peach/25 px-1.5 text-[10px]">
-                        Réimp.
-                      </span>
-                    )}
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {skin.status === "printed" && (
-                        <button
-                          type="button"
-                          className="drip-btn-volt px-3 py-1.5 text-xs"
-                          onClick={() => handleCut(skin.id)}
-                        >
-                          Contrôle OK
-                        </button>
-                      )}
-                      {["printed", "planche_prete", "imposed"].includes(
-                        skin.status
-                      ) && (
-                        <button
-                          type="button"
-                          className="text-xs text-red-300"
-                          onClick={() =>
-                            setScrapTarget({
-                              id: skin.id,
-                              name: skin.design_name,
-                              track: skin.track_code,
-                            })
-                          }
-                        >
-                          Rebut
-                        </button>
-                      )}
-                      {skin.alert === "commande_annulee" && (
-                        <button
-                          type="button"
-                          className="text-xs font-medium text-red-200"
-                          onClick={() => handleRemoveCancelled(skin.id)}
-                        >
-                          Retirer de la feuille
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div
-                    key={`empty-${idx}`}
-                    className="rounded-xl border border-dashed border-drip-border p-3 text-xs text-drip-muted"
-                  >
-                    S{idx + 1} · vide
-                  </div>
-                )
-              )}
-            </div>
-          </article>
+          <SheetCard
+            key={sheet.id}
+            sheet={sheet}
+            isPending={isPending}
+            onOpen={() => handleOpenFile(sheet.sheetCode)}
+            onMarkPrinted={() => handleMarkPrinted(sheet.id, sheet.sheetCode)}
+            onCut={handleCut}
+            onScrap={(skin) =>
+              setScrapTarget({
+                id: skin.id,
+                name: skin.design_name,
+                track: skin.track_code,
+              })
+            }
+            onRemoveCancelled={handleRemoveCancelled}
+          />
         ))}
       </div>
 
@@ -412,5 +411,235 @@ export function LotDetailDashboard({ initial }: Props) {
         />
       )}
     </DashboardShell>
+  );
+}
+
+function WorkflowStrip({ current }: { current: number }) {
+  return (
+    <nav
+      className="mb-8 overflow-x-auto pb-1"
+      aria-label="Parcours de production du lot"
+    >
+      <ol className="flex min-w-[520px] gap-1 sm:min-w-0 sm:gap-2">
+        {STEPS.map((step) => {
+          const done = step.n < current;
+          const active = step.n === current;
+          return (
+            <li
+              key={step.n}
+              className={`flex flex-1 flex-col rounded-xl border px-2 py-2.5 sm:px-3 ${
+                active
+                  ? "border-drip-volt/40 bg-drip-volt/10"
+                  : done
+                    ? "border-emerald-500/25 bg-emerald-500/5"
+                    : "border-drip-border bg-drip-surface/50"
+              }`}
+            >
+              <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-drip-muted">
+                {done ? (
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                ) : (
+                  <span
+                    className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] ${
+                      active
+                        ? "bg-drip-volt text-white"
+                        : "bg-drip-border text-drip-muted"
+                    }`}
+                  >
+                    {step.n}
+                  </span>
+                )}
+                {step.title}
+              </span>
+              <span className="mt-0.5 hidden text-[10px] leading-snug text-drip-muted sm:block">
+                {step.short}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
+  );
+}
+
+function StepHeader({
+  n,
+  title,
+  active,
+}: {
+  n: number;
+  title: string;
+  active: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <span
+        className={`flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold ${
+          active ? "bg-drip-volt text-white" : "bg-drip-border text-drip-muted"
+        }`}
+      >
+        {n}
+      </span>
+      <h3 className="font-display text-base font-medium">{title}</h3>
+    </div>
+  );
+}
+
+function SheetCard({
+  sheet,
+  isPending,
+  onOpen,
+  onMarkPrinted,
+  onCut,
+  onScrap,
+  onRemoveCancelled,
+}: {
+  sheet: LotDetailSheet;
+  isPending: boolean;
+  onOpen: () => void;
+  onMarkPrinted: () => void;
+  onCut: (skinId: string, track: string) => void;
+  onScrap: (skin: NonNullable<LotDetailSheet["slots"][0]>) => void;
+  onRemoveCancelled: (skinId: string) => void;
+}) {
+  const meta = FILE_STATUS[sheet.fileStatus];
+  const filled = sheet.slots.filter(Boolean).length;
+
+  return (
+    <article className="drip-card overflow-hidden">
+      <header className="flex flex-col gap-3 border-b border-drip-border bg-drip-lilac/40 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-[10px] font-medium uppercase tracking-widest text-drip-muted">
+            Feuille
+          </p>
+          <p className="font-mono text-2xl font-semibold">{sheet.sheetCode}</p>
+          <p className="text-xs text-drip-muted">
+            {filled} skin(s) · {meta.hint}
+          </p>
+        </div>
+        <span
+          className={`self-start rounded-full px-3 py-1.5 text-xs font-medium ${meta.tone}`}
+        >
+          {meta.label}
+        </span>
+      </header>
+
+      <div className="flex flex-col gap-2 border-b border-drip-border p-4 sm:flex-row">
+        <button
+          type="button"
+          disabled={!sheet.filePath || isPending}
+          onClick={onOpen}
+          className="drip-touch min-h-[48px] flex-1 rounded-xl border border-drip-border bg-drip-elevated px-4 py-3 text-sm font-medium disabled:opacity-40"
+        >
+          Ouvrir le PDF
+        </button>
+        <button
+          type="button"
+          disabled={sheet.fileStatus !== "planche_prete" || isPending}
+          onClick={onMarkPrinted}
+          className="drip-btn-volt drip-touch min-h-[48px] flex-1 px-4 py-3 text-sm disabled:opacity-40"
+        >
+          <span className="inline-flex items-center justify-center gap-2">
+            <Printer className="h-4 w-4" />
+            J&apos;ai imprimé cette feuille
+          </span>
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 p-4 lg:grid-cols-4">
+        {sheet.slots.map((skin, idx) =>
+          skin ? (
+            <div
+              key={skin.id}
+              className={`flex min-h-[140px] flex-col rounded-xl border p-3 ${
+                skin.alert === "commande_annulee"
+                  ? "border-red-500/40 bg-red-500/10"
+                  : "border-drip-border bg-drip-paper"
+              }`}
+            >
+              <div className="flex items-start justify-between gap-1">
+                <span className="drip-chip py-0.5 font-mono text-[10px]">
+                  S{idx + 1}
+                </span>
+                {skin.reprint_of && (
+                  <span className="rounded bg-drip-peach/30 px-1 text-[9px] font-bold">
+                    Réimp.
+                  </span>
+                )}
+              </div>
+              <p className="mt-2 line-clamp-2 text-sm font-medium leading-snug">
+                {skin.design_name}
+              </p>
+              <p className="mt-1 font-mono text-[10px] text-drip-muted">
+                {skin.track_code}
+              </p>
+              <SkinStatusPill status={skin.status} />
+              <div className="mt-auto flex flex-col gap-2 pt-3">
+                {skin.status === "printed" && (
+                  <button
+                    type="button"
+                    disabled={isPending}
+                    onClick={() => onCut(skin.id, skin.track_code)}
+                    className="drip-btn-volt w-full py-2.5 text-xs font-medium"
+                  >
+                    Contrôle OK
+                  </button>
+                )}
+                {skin.status === "cut" && (
+                  <Link
+                    href="/scanner"
+                    className="flex w-full items-center justify-center gap-1 rounded-lg border border-emerald-500/35 bg-emerald-500/10 py-2 text-xs font-medium text-emerald-800"
+                  >
+                    <ScanLine className="h-3.5 w-3.5" />
+                    Expédier
+                  </Link>
+                )}
+                {["printed", "planche_prete", "imposed"].includes(
+                  skin.status
+                ) && (
+                  <button
+                    type="button"
+                    onClick={() => onScrap(skin)}
+                    className="text-center text-[11px] text-red-600 underline"
+                  >
+                    Signaler un rebut
+                  </button>
+                )}
+                {skin.alert === "commande_annulee" && (
+                  <button
+                    type="button"
+                    onClick={() => onRemoveCancelled(skin.id)}
+                    className="w-full rounded-lg border border-red-500/40 py-2 text-[11px] font-medium text-red-800"
+                  >
+                    Retirer (annulation)
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div
+              key={`e-${idx}`}
+              className="flex min-h-[100px] items-center justify-center rounded-xl border border-dashed border-drip-border bg-drip-surface/50 text-xs text-drip-muted"
+            >
+              S{idx + 1} · vide
+            </div>
+          )
+        )}
+      </div>
+    </article>
+  );
+}
+
+function SkinStatusPill({ status }: { status: string }) {
+  const meta = SKIN_STATUS[status] ?? {
+    label: status,
+    tone: "bg-drip-border text-drip-muted",
+  };
+  return (
+    <span
+      className={`mt-2 inline-block w-fit rounded-md px-2 py-0.5 text-[10px] font-medium ${meta.tone}`}
+    >
+      {meta.label}
+    </span>
   );
 }
